@@ -129,7 +129,7 @@ class MonitorChanges(Thread):
     def run(self):
         # As long as we are running keep monitoring the change feed for changes.
         log.debug("Start monitoring database : {0} changes PID: {1} since:{2}\n\n".format(
-                    str(self._database), self.pid, self._lastChangeSequence))
+                    str(self._database), self.name, self._lastChangeSequence))
         self._errorCount = 0
         while(self.is_alive() and self._errorCount < self._MAX_ERROR_RESTART):
             try:
