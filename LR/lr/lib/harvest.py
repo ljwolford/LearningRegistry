@@ -34,7 +34,10 @@ class harvest:
      return [{'metadataFormat':{'metadataPrefix':'dc'}}]
   def earliestDate(self):
     view = self.db.view('_design/learningregistry-by-date/_view/docs',limit=1,stale='ok')
-    return view.rows[0].key
+    if len(view.rows) > 0:
+      return view.rows[0].key
+    else:
+      return None
   def list_identifiers(self, from_date, until_date,resumption_token=None,limit=None):
     return self.getViewRows(False,until_date,from_date,limit,resumption_token)
   def getViewRows(self,includeDocs, untilDate,fromDate,limit=None,resumption_token=None):    
@@ -43,7 +46,7 @@ class harvest:
         'include_docs':includeDocs,
         'endkey':h.convertToISO8601Zformat(untilDate),
         'startkey':h.convertToISO8601Zformat(fromDate),
-    }    
+      }        
     if resumption_token is not None:
         params['startkey'] = resumption_token['startkey']
         params['endkey'] = resumption_token['endkey']
@@ -51,6 +54,8 @@ class harvest:
         params['skip'] = 1
     if limit is not None:
         params['limit'] = limit
+    import json
+    log.debug(json.dumps(params))
     return h.getView(database_url=self.db_url,view_name='_design/learningregistry-by-date/_view/docs',**params)    
 if __name__ == "__main__":
   h = harvest()

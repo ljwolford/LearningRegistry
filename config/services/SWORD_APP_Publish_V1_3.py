@@ -1,7 +1,7 @@
 '''
 Created on Oct16, 2011
 
-@author: jpoyau
+@author: wegrata
 '''
 from service_template import ServiceTemplate
 from setup_utils import getInput, PublishDoc, isBoolean, YES, isInt
@@ -12,38 +12,29 @@ import json
 
 def install(server, dbname, setupInfo):
     custom_opts = {}
-    active = getInput("Enable Basic Publish?", "T", isBoolean)
+    active = getInput("Enable SWORD Service?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
 
     
-    active = getInput("Maximum documents the node will accepts?", "1000", isInt)
-    custom_opts["doc_limit"] = int(active)
-
-    active = getInput("Enter message size limit in octet. \n"+
-                    "This should the maximum data size  the the node  will accept ", None, isInt)
-
-    custom_opts["msg_size_limit"] = int(active)
 
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
     
     
-    must = __BasicPublishServiceTemplate()
+    must = __BasicSwordServiceTemplate()
     config_doc = must.render(**custom_opts)
     print config_doc
     doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":Basic Publish service", doc)
-    print("Configured Basic Publish service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
+    PublishDoc(server, dbname,doc["service_type"]+":SWORD APP Publish V1.3 service", doc)
+    print("Configured SWORD APP Publish service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
 
 
 
 
-class __BasicPublishServiceTemplate(ServiceTemplate):
+class __BasicSwordServiceTemplate(ServiceTemplate):
     def __init__(self):
         ServiceTemplate.__init__(self)    
         self.service_data_template = '''{
-            "msg_size_limit": {{msg_size_limit}}{{/msg_size_limit}},
-            "doc_limit": {{doc_limit}}{{/doc_limit}}
         }'''    
     
     
@@ -52,9 +43,9 @@ class __BasicPublishServiceTemplate(ServiceTemplate):
         opts = {
             "active": "false",
             "service_type": "publish",
-            "service_name": "Basic Publish",
+            "service_name": "SWORD APP Publish V1.3",
             "service_version": "0.23.0",
-            "service_endpoint": "/publish",
+            "service_endpoint": "/swordservice",
             "service_key": "false", 
             "service_https": "false",
             "doc_limit": None ,
