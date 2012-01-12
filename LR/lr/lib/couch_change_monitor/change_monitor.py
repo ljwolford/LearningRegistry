@@ -145,13 +145,13 @@ class MonitorChanges(Thread):
             log.error("Change monitor for database {0} exceeded max errors\n\n".format(str(self._database)))
     
     def terminate(self):
-        Thread.terminate(self)
         log.debug("\n\n------------I got terminated ...---------------\n\n")
     
     def start(self, callerThread=None):
         if isinstance(callerThread, Thread):
             self._callerThread = callerThread
         self._selfTerminatorThread()
+        Thread.daemon = True
         Thread.start(self)
 
 
