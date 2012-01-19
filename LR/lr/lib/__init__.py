@@ -10,12 +10,13 @@ Created on August 18, 2011
 '''
 
 from model_parser import ModelParser, getFileString, SpecValidationException
-from couch_change_monitor import *
+from couch_change_monitor import  MonitorChanges, \
+        BaseChangeHandler, BaseChangeThresholdHandler, BaseViewsUpdateHandler
 
 __all__=["ModelParser", 
-              "SpecValidationException"
+              "SpecValidationException",
               "getFileString",
               "MonitorChanges",
               "BaseChangeHandler",
-              "BaseThresholdHandler",
+              "BaseChangeThresholdHandler",
               "BaseViewsUpdateHandler"]
