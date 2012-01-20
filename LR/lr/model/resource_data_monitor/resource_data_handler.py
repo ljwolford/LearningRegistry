@@ -11,7 +11,7 @@ Created on August 31, 2011
 import logging
 import pprint
 from lr.lib import BaseChangeHandler
-from lr.model.resource_data import ResourceDataModel
+from lr.model._default_models import ResourceDataModel
 
 _RESOURCE_DISTRIBUTABLE_TYPE = "resource_data"
 _DOC_TYPE = "doc_type"

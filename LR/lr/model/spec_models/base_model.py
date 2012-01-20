@@ -7,31 +7,31 @@ Base model class for learning registry data model
 
 @author: jpoyau
 '''
-from pylons import config
-from lr.lib import ModelParser, getFileString
-import couchdb, os, logging, datetime, re, pprint, json 
+
+from lr.lib import ModelParser
+import couchdb
+import logging
+import urllib2
+import pprint
+import json 
 from uuid import uuid4
 from os import path
 
 log = logging.getLogger(__name__)
 
-
-        
-#initialize the couchDB server
-appConfig = config['app_conf']
-
-#Default couchdb server that use by all the models when none is provided.
-defaultCouchServer =  couchdb.Server(appConfig['couchdb.url'])    
-
-def createBaseModel( modelSpec, defaultDBName, server=defaultCouchServer):
-        
-    def createDB(name, server=defaultCouchServer):
+_HEADERS ={'Content-type': 'application/json',  'Content-Length':0}
+def createBaseModel( modelSpec, databaseUrl):
+    
+    def createDB(databaseUrl):
         try:
-            server.create(name)
+            request = urllib2.Request(databaseUrl,  None, _HEADERS)
+            request.get_method = lambda : "PUT"
+            urllib2.urlopen(request)
         except Exception as ex:
             pass
             #log.exception(ex)
-        return server[name]
+            #print("\n\n-------------------------{0}------------------------\n\n".format(databaseUrl))
+        return couchdb.Database(databaseUrl)
     
     class BaseModel(object):
         """Base model class for Learning Registry data models"""
@@ -40,12 +40,12 @@ def createBaseModel( modelSpec, defaultDBName, server=defaultCouchServer):
         _REV = '_rev'
         _SPEC_DATA = '_specData'
         
-        _defaultDB = createDB(defaultDBName, server)
+        _defaultDB = createDB(databaseUrl)
         _modelParser = ModelParser(modelSpec)
         
         @classmethod
         def get(cls, doc_id, db=None):
-            sourcDB = db
+            sourceDB = db
             if db is None:
                 sourceDB = cls._defaultDB
             
@@ -203,6 +203,7 @@ def createBaseModel( modelSpec, defaultDBName, server=defaultCouchServer):
                 return dict((k, self._specData[k]) for k in  validKeys)
             except:
                 return self._specData
+
         # Property that return the dictionary of the spec data.
         specData = property(lambda self: dict(self._specData), None, None,  None)
         id = property(lambda self: self.__getattr__(self._ID), None, None, None)

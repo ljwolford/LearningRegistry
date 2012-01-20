@@ -12,18 +12,9 @@ from uuid import uuid4
 import couchdb, os, logging, datetime, re, pprint 
 log = logging.getLogger(__name__)
 
-from resource_data import ResourceDataModel, appConfig
-from node import NodeModel
-from node_filter import NodeFilterModel
-from community import CommunityModel
-from network import NetworkModel
-from node_connectivity import NodeConnectivityModel
-from node_service import NodeServiceModel
-from network_policy import NetworkPolicyModel
 from  node_config import LRNodeModel
-from base_model import defaultCouchServer
 from resource_data_monitor import monitorResourceDataChanges
-
+from _default_models import *
 
 def _getNodeDocument(docModel, docType, numType=None, isRequired=True):
     

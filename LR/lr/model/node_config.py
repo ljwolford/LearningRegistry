@@ -10,23 +10,15 @@ Base model class for learning registry data model
 @author: jpoyau
 '''
 import sys
-from network import NetworkModel
-from community import CommunityModel
-from node import NodeModel
-from node_status import NodeStatusModel
-from network_policy import NetworkPolicyModel
-from node_connectivity import NodeConnectivityModel
-from node_service import NodeServiceModel
-from resource_data import ResourceDataModel
-from node_filter import NodeFilterModel, defaultCouchServer, appConfig
+
 import logging
-import threading
 import pprint
 from lr.lib import helpers as h
 import urllib2
 from urlparse import urlparse, urlunparse, ParseResult
 import json
-import atexit
+from _default_models import *
+
 _COUCHDB_FIELDS =['_id', '_rev', 
                                     '_attachments', 
                                     '_deleted', 
@@ -143,7 +135,7 @@ class LRNodeModel(object):
           
     def _getStatusDescription(self):
         count = 0
-        view = ResourceDataModel._defaultDB.view(appConfig['couchdb.db.resourcecount'],stale='ok')
+        view = ResourceDataModel._defaultDB.view(config['app_conf']['couchdb.db.resourcecount'],stale='ok')
         if len(view.rows) > 0:
             count = view.rows[0].value 
         statusData = {'doc_count': count,

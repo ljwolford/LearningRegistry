@@ -10,7 +10,7 @@ Created on August 31, 2011
 '''
 from lr.lib.couch_change_monitor import BaseChangeHandler
 import pprint
-from lr.model.resource_data import appConfig, ResourceDataModel
+from lr.model._default_models import ResourceDataModel
 import logging
 
 log = logging.getLogger(__name__)
