@@ -1,5 +1,5 @@
 import logging, urllib2, json, couchdb
-from lr.model.base_model import appConfig
+from pylons import config
 import lr.lib.helpers as h
 
 from pylons import request, response, session, tmpl_context as c, url
@@ -126,7 +126,7 @@ class SliceController(BaseController):
         return params
 
     def _get_view(self,view_name = '_design/learningregistry-slice/_view/docs',keys=[], include_docs = False, resumptionToken=None, limit=None):
-        db_url = '/'.join([appConfig['couchdb.url'],appConfig['couchdb.db.resourcedata']])
+        db_url = '/'.join([config['app_conf']['couchdb.db.resourcedata']])
         
         opts = {"stale": "ok", "reduce": False }
         
@@ -150,7 +150,7 @@ class SliceController(BaseController):
         return view
     
     def _get_view_total(self,view_name = '_design/learningregistry-slice/_view/docs',keys=[], resumptionToken=None):
-        db_url = '/'.join([appConfig['couchdb.url'],appConfig['couchdb.db.resourcedata']])
+        db_url = '/'.join([config['app_conf']['couchdb.db.resourcedata']])
         
         opts = {"stale": "ok", "reduce": True, "group": True }
         

@@ -3,15 +3,14 @@ import couchdb
 import logging
 import helpers as h
 import iso8601
-from lr.model.base_model import appConfig
+from pylons import config
+
 
 log = logging.getLogger(__name__)
 class harvest:
-  def __init__(self, server=appConfig['couchdb.url'], database=appConfig['couchdb.db.resourcedata']):
-    couchServer = couchdb.Server(server)
-    self.server = couchServer
-    self.db = couchServer[database]
-    self.db_url = '/'.join([server,database])
+  def __init__(self, database=config['app_conf']['couchdb.db.resourcedata']):
+    self.db = couchdb.Database(database)
+    self.db_url = '/'.join([database])
   def __parse_date(self,date):
         last_update_date = iso8601.parse_date(date)
         last_update = h.convertToISO8601UTC(last_update_date)    

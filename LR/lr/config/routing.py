@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 def make_map(config):
     """Create, configure and return the routes Mapper"""
-    from pylons import config as c    
+    from pylons import config as c 
     c.update(config)
     from lr.model import LRNode
 

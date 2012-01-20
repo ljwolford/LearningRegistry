@@ -21,7 +21,7 @@ import re
 from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
 from lr.model import LRNode as sourceLRNode, \
-            NodeServiceModel, ResourceDataModel, LRNodeModel, defaultCouchServer, appConfig
+            NodeServiceModel, ResourceDataModel, LRNodeModel, defaultCouchServer, config['app_conf']
 from lr.lib.base import BaseController, render
 from lr.lib import helpers as h
 import base64
@@ -31,24 +31,20 @@ log = logging.getLogger(__name__)
 
 class DistributeController(BaseController):
     def __before__(self):
-        self.resource_data = appConfig['couchdb.db.resourcedata']
+        self.resource_data = config['app_conf']['couchdb.db.resourcedata']
     """REST Controller styled on the Atom Publishing Protocol"""
     # To properly map this controller, ensure your config/routing.py
     # file has a resource setup:
     #     map.resource('distribute', 'distribute')
     def index(self, format='html'):
         """GET /distribute: All items in the collection"""
-        # url('distribute')
+    
         distributeInfo = {'OK': True}
-        
-        #if sourceLRNode.isServiceAvailable(NodeServiceModel.DISTRIBUTE) == False:
-            #distributeInfo['OK'] = False
-        #else:
         distributeInfo['node_config'] = sourceLRNode.config
         distributeInfo['distribute_sink_url'] = urlparse.urljoin(request.url,self.resource_data)
         # Check to see if the couch resource_data is defined in the config if so use it.
-        if appConfig.has_key("distribute_sink_url"):
-             distributeInfo['distribute_sink_url'] = appConfig["distribute_sink_url"]
+        if config['app_conf'].has_key("distribute_sink_url"):
+             distributeInfo['distribute_sink_url'] = config['app_conf']["distribute_sink_url"]
 
         log.info("received distribute request...returning: \n"+json.dumps(distributeInfo))
         return json.dumps(distributeInfo)
@@ -173,12 +169,12 @@ class DistributeController(BaseController):
             results = server.replicate(sourceUrl, destinationUrl, **replicationOptions)
             log.debug("Replication results: "+str(results))
             with lock:
-                server = couchdb.Server(appConfig['couchdb.url'])
-                db = server[appConfig['couchdb.db.node']]
-                doc = db[appConfig['lr.nodestatus.docid']]
+                server = couchdb.Server(config['app_conf']['couchdb.url'])
+                db = server[config['app_conf']['couchdb.db.node']]
+                doc = db[config['app_conf']['lr.nodestatus.docid']]
                 doc['last_out_sync'] = h.nowToISO8601Zformat()
                 doc['out_sync_node'] = destinationNode.nodeDescription.node_name
-                db[appConfig['lr.nodestatus.docid']] = doc
+                db[config['app_conf']['lr.nodestatus.docid']] = doc
         
         log.info("Distribute.......\n")
         ##Check if the distribte service is available on the node.

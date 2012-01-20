@@ -188,7 +188,7 @@ class TestHarvestController(TestController):
         self._validate_error_message(response)
     @ForceCouchDBIndexing()
     def test_listidentifiers_flow_control_enabled(self):
-        nodeDb = self.server[config["couchdb.db.node"]]
+        nodeDb = couchdb.Database(config["couchdb.db.node"])
         serviceDoc = nodeDb[config["lr.harvest.docid"]]
         flowControlCurrent = serviceDoc['service_data']['flow_control']
         serviceDoc['service_data']['flow_control'] = True
@@ -209,7 +209,7 @@ class TestHarvestController(TestController):
         assert len(result['documents']) == 100
     @ForceCouchDBIndexing()        
     def test_listidentifiers_flow_control_enabled(self):
-        nodeDb = self.server[config["couchdb.db.node"]]
+        nodeDb = couchdb.Database(config["couchdb.db.node"])
         serviceDoc = nodeDb[config["lr.harvest.docid"]]
         flowControlCurrent = serviceDoc['service_data']['flow_control']
         serviceDoc['service_data']['flow_control'] = False
@@ -222,7 +222,7 @@ class TestHarvestController(TestController):
         assert not result.has_key('resumption_token')
     @ForceCouchDBIndexing()
     def test_listrecords_flow_control_enabled(self):
-        nodeDb = self.server[config["couchdb.db.node"]]
+        nodeDb = couchdb.Database(config["couchdb.db.node"])
         serviceDoc = nodeDb[config["lr.harvest.docid"]]
         flowControlCurrent = serviceDoc['service_data']['flow_control']
         serviceDoc['service_data']['flow_control'] = True
@@ -243,7 +243,7 @@ class TestHarvestController(TestController):
         assert len(result['documents']) == 100
     @ForceCouchDBIndexing()        
     def test_listrecords_flow_control_enabled(self):
-        nodeDb = self.server[config["couchdb.db.node"]]
+        nodeDb = couchdb.Database(config["couchdb.db.node"])
         serviceDoc = nodeDb[config["lr.harvest.docid"]]
         flowControlCurrent = serviceDoc['service_data']['flow_control']
         serviceDoc['service_data']['flow_control'] = False

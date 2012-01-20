@@ -42,7 +42,7 @@ qualname = routes.middleware
 level = INFO
 
 [server:main]
-use = egg:Flup#fcgi_thread
+use = egg:Paste#http
 host = 127.0.0.1
 port = 5000
 
@@ -61,10 +61,11 @@ beaker.session.use_cookies = false
 
 
 couchdb.url = http://localhost:5984/
-couchdb.db.node = node
-couchdb.db.resourcedata = resource_data
-couchdb.db.network = network
-couchdb.db.community = community
+couchdb.db.node = %(couchdb.url)s/node
+couchdb.db.resourcedata =  %(couchdb.url)s/resource_data
+couchdb.db.network =  %(couchdb.url)s/network
+couchdb.db.community =  %(couchdb.url)s/community
+
 couchdb.db.resourcesview = _design/learningregistry-resources/_view/docs
 couchdb.db.resourcecount = _design/learningregistry-resources/_view/count
 couchdb.threshold.distributes = 1000
@@ -82,6 +83,7 @@ lr.services.docid = administrative:Network Node Services service
 lr.policy.docid = administrative:Resource Distribution Network Policy service
 lr.status.docid = administrative:Network Node Status service
 lr.distribute.docid = distribute:Resource Data Distribution service
+
 models_spec_dir = %(here)s/data/models
 spec.models.node_description = %(here)s/data/LR_Tech_Spec_V_0_23/models/node_description
 spec.models.resource_data = %(here)s/data/LR_Tech_Spec_V_0_23/models/resource_data

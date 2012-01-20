@@ -1,6 +1,6 @@
 import logging
 import urlparse
-from pylons import request, response, session, tmpl_context as c, url
+from pylons import request, response, session, tmpl_context as c, url, config
 from pylons.controllers.util import abort, redirect
 from pylons.decorators import rest
 from lr.lib.base import BaseController, render
@@ -48,7 +48,7 @@ class SwordserviceController(PublishController):
             c.verbose = request.headers['X-Verbose']
         if request.headers.has_key('X-No-Op'):
             c.no_op = request.headers['X-No-Op']
-        c.tos_url = m.base_model.appConfig['tos.url']
+        c.tos_url = config['app_conf']['tos.url']
         c.generator_url = self.baseUrl
     @restrict("POST")
     def create(self):		

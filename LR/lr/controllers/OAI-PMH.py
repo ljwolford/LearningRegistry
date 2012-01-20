@@ -3,7 +3,7 @@ from pylons import request, response, session, tmpl_context as c, url
 from pylons.controllers.util import abort, redirect
 
 from lr.controllers.harvest import HarvestController
-from lr.model import appConfig
+from pylons import config
 from lr.lib import helpers as h, oaipmherrors, oaipmh as o_mod
 from lr.lib.base import BaseController, render
 from lr.lib.oaipmh import oaipmh, OAIPMHDocumentResolver
@@ -230,7 +230,7 @@ class OaiPmhController(HarvestController):
         fc_id_limit = None
         fc_doc_limit = None
         service_id = None
-        serviceDoc = h.getServiceDocument(appConfig['lr.oaipmh.docid'])
+        serviceDoc = h.getServiceDocument(config['app_conf']['lr.oaipmh.docid'])
         if serviceDoc != None:
             if 'service_id' in serviceDoc:
                 service_id = serviceDoc['service_id']

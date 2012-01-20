@@ -20,8 +20,7 @@ log = logging.getLogger(__name__)
 def ForceCouchDBIndexing():
     json_headers = {"Content-Type": "application/json"}
     couch = {
-        "url": config["couchdb.url"],
-        "resource_data": config["couchdb.db.resourcedata"]
+        "url": config["couchdb.db.resourcedata"]
     }
 
     def indexTestData(obj):
@@ -41,7 +40,7 @@ def ForceCouchDBIndexing():
                     if "reduce" in row.doc["views"][view]:
                         index_opts["reduce"] = 'false'
                     log.error("Indexing: {0}".format( view_name))
-                    req = urllib2.Request("{url}/{resource_data}/{view}?{opts}".format(view=view_name, opts=urllib.urlencode(index_opts), **couch), 
+                    req = urllib2.Request("{url}/{view}?{opts}".format(view=view_name, opts=urllib.urlencode(index_opts), **couch), 
                                           headers=json_headers)
                     res = urllib2.urlopen(req)
 #                    view_result = obj.db.view(view_name, **index_opts)
@@ -72,8 +71,7 @@ def PublishTestDocs(sourceData, prefix, sleep=0, force_index=True):
     json_headers = {"Content-Type": "application/json"}
     test_data_log = "test-data-%s.log" % prefix
     couch = {
-        "url": config["couchdb.url"],
-        "resource_data": config["couchdb.db.resourcedata"]
+        "url":  config["couchdb.db.resourcedata"]
     }
     
     def writeTestData(obj):
@@ -109,7 +107,7 @@ def PublishTestDocs(sourceData, prefix, sleep=0, force_index=True):
                     if "reduce" in row.doc["views"][view]:
                         index_opts["reduce"] = 'false'
                     log.error("Indexing: {0}".format( view_name))
-                    req = urllib2.Request("{url}/{resource_data}/{view}?{opts}".format(view=view_name, opts=urllib.urlencode(index_opts), **couch), 
+                    req = urllib2.Request("{url}/{view}?{opts}".format(view=view_name, opts=urllib.urlencode(index_opts), **couch), 
                                           headers=json_headers)
                     res = urllib2.urlopen(req)
 #                    view_result = obj.db.view(view_name, **index_opts)
@@ -118,7 +116,7 @@ def PublishTestDocs(sourceData, prefix, sleep=0, force_index=True):
                 log.error("Not Indexing: {0}".format( row.key))
     
     def cacheTestData(obj):
-        req = urllib2.Request("{url}/{resource_data}/_all_docs?include_docs=true".format(**couch), 
+        req = urllib2.Request("{url}/_all_docs?include_docs=true".format(**couch), 
                               data=json.dumps({"keys":obj.test_data_ids[prefix]}), 
                               headers=json_headers)
         res = urllib2.urlopen(req)

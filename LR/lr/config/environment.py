@@ -49,9 +49,8 @@ def load_environment(global_conf, app_conf):
     # any Pylons config options)
     import couchdb
     import lr.lib.helpers as helpers
-    server = couchdb.Server(config['couchdb.url'])
-    db = server[config['couchdb.db.node']]
+    db = couchdb.Database(config['couchdb.db.node'])
     doc = db[config['lr.nodestatus.docid']]
     doc['start_time'] = helpers.nowToISO8601Zformat()
-    db.save(doc)    
+    db.save(doc)
     return config

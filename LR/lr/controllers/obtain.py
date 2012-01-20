@@ -13,7 +13,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 import json 
-from lr.model.base_model import appConfig
+from pylons import config
 import lr.lib.helpers as h
 import lr.lib.resumption_token as rt
 from pylons import request, response, session, tmpl_context as c, url
@@ -29,7 +29,7 @@ class ObtainController(BaseController):
     # file has a resource setup:
     #     map.resource('obtain', 'obtain')
     def get_view(self,view_name = '_design/learningregistry-resources/_view/docs',keys=[], include_docs = False,resumption_token=None):                
-        db_url = '/'.join([appConfig['couchdb.url'],appConfig['couchdb.db.resourcedata']])
+        db_url = '/'.join([config['app_conf']['couchdb.db.resourcedata']])
         args = {}
         if len(keys) > 0:
             args['keys'] = keys
@@ -47,7 +47,7 @@ class ObtainController(BaseController):
         self.enable_flow_control = False
         self.limit = None        
         self.service_id = None
-        serviceDoc = h.getServiceDocument(appConfig['lr.obtain.docid'])
+        serviceDoc = h.getServiceDocument(config['app_conf']['lr.obtain.docid'])
         if serviceDoc != None:
             if 'service_id' in serviceDoc:
                 self.service_id = serviceDoc['service_id']

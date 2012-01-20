@@ -25,13 +25,13 @@ class MonitorChanges(Thread):
     # any change in change.  This avoid getting stuck in endless loop
     _MAX_ERROR_RESTART = 10
      
-    def __init__(self, serverUrl, databaseName,  changeHandlers=None,  changeOptions=None, *args, **kwargs):
-        """Waring *args and **kwargs will be run on the different process so the must
+    def __init__(self, databaseUrl,  changeHandlers=None,  changeOptions=None, *args, **kwargs):
+        """Warning *args and **kwargs will be run on the different process so they must
             be pickeable and not tied in any way to the calling process otherwise to application
             may get unstable.
         """
         Thread.__init__(self, None, None, "learningRegistryChangeMonitor", args, kwargs)
-        self._database = couchdb.Server(serverUrl)[databaseName]
+        self._database = couchdb.Database(databaseUrl)
         self._callerThread = None
         self._addHandlerQueue = Queue()
         self._removeHandlerQueue = Queue()
