@@ -136,6 +136,7 @@ class LRNodeModel(object):
     def _getStatusDescription(self):
         count = 0
         view = ResourceDataModel._defaultDB.view(config['app_conf']['couchdb.db.resourcecount'],stale='ok')
+
         if len(view.rows) > 0:
             count = view.rows[0].value 
         statusData = {'doc_count': count,
@@ -269,9 +270,20 @@ class LRNodeModel(object):
         passwords = h.dictToObject(NodeModel._defaultDB[_ACCESS_CREDENTIALS_ID])
         credential = passwords.passwords.get(targetUrl)
         return credential
+    
+    def getDistributeInfo(self):
+        distributeInfo = {'active':self.nodeDescription.active,
+                                    'node_id':self.nodeDescription.node_id,
+                                    'network_id': self.nodeDescription.network_id,
+                                    'community_id': self.nodeDescription.community_id,
+                                    'gateway_node':self.nodeDescription.gateway_node,
+                                    'social_community':self.communityDescription.social_community,
+                                    'resource_data_url': appConfig['lr.distribute_resource_data_url'],
+                                    'filter_description':self.filterDescription.specData
+                                }
+        return distributeInfo
 
-
-
+    distributeInfo = property(lambda self: self.getDistributeInfo(), None, None, None)
     nodeDescription = property(lambda self: self._nodeDescription, None, None, None)
     networkDescription = property(lambda self: self._networkDescription, None, None, None)
     communityDescription = property(lambda self: self._communityDescription, None, None, None)
@@ -283,5 +295,6 @@ class LRNodeModel(object):
     connections = property(lambda self: self._connections[:], None, None, None)
     nodeServices = property(lambda self: self._nodeServices.values(), None, None, None)
     status = property(_getStatusDescription, None, None, None)
+
 
 
