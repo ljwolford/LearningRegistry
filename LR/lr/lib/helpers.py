@@ -52,7 +52,7 @@ def fixUtf8(input):
         return input
 
 def getServiceDocument(serviceName):
-    
+    from pylons import config
     json_headers = { "Content-Type": "application/json; charset=\"utf-8\"" }
     url = "{0}/{1}".format(config['app_conf']['couchdb.db.node'],urllib.quote(serviceName))
     req = urllib2.Request(url=url, headers=json_headers)
@@ -203,6 +203,7 @@ def getISO8601Granularity(iso8601string):
 _DATETIME_REPLACEMENT_REGEX = re.compile(r"[YMDhms]")
 
 def getOAIPMHServiceGranularity():
+    from pylons import config
     '''Determines the Granularity object of 8601 time format specified by OAI-PMH Harvest'''
     service_doc = getServiceDocument(config['app_conf']["lr.oaipmh.docid"])
     format = getDatetimePrecision(service_doc)
@@ -226,10 +227,12 @@ def getDatetimePrecision(service_descriptor=None):
 
     
 def getHarvestDatetimeFormatString():
+    from pylons import config
     service_doc = getServiceDocument(config['app_conf']["lr.harvest.docid"])
     return getDatetimeFormatString(service_doc)
 
 def getOAIPMHDatetimeFormatString():
+    from pylons import config
     service_doc = getServiceDocument(config['app_conf']["lr.oaipmh.docid"])
     return getDatetimeFormatString(service_doc)
     
