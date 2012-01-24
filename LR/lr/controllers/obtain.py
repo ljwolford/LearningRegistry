@@ -13,10 +13,9 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 
 import json 
-from pylons import config
 import lr.lib.helpers as h
 import lr.lib.resumption_token as rt
-from pylons import request, response, session, tmpl_context as c, url
+from pylons import request, response, session, tmpl_context as c, url, config
 from pylons.controllers.util import abort, redirect
 from lr.lib.base import BaseController, render
 import logging
@@ -33,7 +32,7 @@ class ObtainController(BaseController):
         args = {}
         if len(keys) > 0:
             args['keys'] = keys
-        args['stale'] = appConfig['couchdb.stale.flag']
+        args['stale'] = config['app_conf']['couchdb.stale.flag']
         if self.limit is not None:
             args['limit'] = self.limit
         args['include_docs'] = include_docs

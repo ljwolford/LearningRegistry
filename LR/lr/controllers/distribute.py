@@ -18,10 +18,10 @@ import json
 import  urllib2
 import threading
 import re
-from pylons import request, response, session, tmpl_context as c, url
+from pylons import request, response, session, tmpl_context as c, url, config
 from pylons.controllers.util import abort, redirect
 from lr.model import LRNode as sourceLRNode, \
-            NodeServiceModel, ResourceDataModel, LRNodeModel, defaultCouchServer, config['app_conf']
+            NodeServiceModel, ResourceDataModel, LRNodeModel
 from lr.lib.base import BaseController, render
 from lr.lib import helpers as h
 import base64
@@ -52,7 +52,7 @@ class DistributeController(BaseController):
             response[self.__TARGET_NODE_INFO] = sourceLRNode.distributeInfo
         except Exception as ex:
             log.exception(ex)
-            response["error":"Internal error"]
+            response["error"] = "Internal error"
             
         log.info("received distribute request...returning: \n"+pprint.pformat(response, 4))
         return json.dumps(response)
@@ -150,7 +150,7 @@ class DistributeController(BaseController):
         
         distributeResults = Queue.Queue()
 
-        def doDistribution(connectionInfo, server, sourceUrl):
+        def doDistribution(connectionInfo, sourceUrl):
             # We want to always use the replication filter function to replicate
             # only distributable doc and filter out any other type of documents.
             # However we don't have any query arguments until we test if there is any filter.
@@ -180,7 +180,7 @@ class DistributeController(BaseController):
 
             replicationOptions['target'] = destinationUrl
             
-            request = urllib2.Request(urlparse.urljoin(appConfig['couchdb.url'], '_replicator'),
+            request = urllib2.Request(urlparse.urljoin(config['app_conf']['couchdb.url'], '_replicator'),
                                     headers={'Content-Type':'application/json' },
                                     data = json.dumps(replicationOptions))
             
@@ -212,7 +212,7 @@ class DistributeController(BaseController):
             if connectionsStatusInfo.has_key(self.__ERROR) or connectionStatus.has_key(self.__ERROR) == True:
                 distributeResults.put(connectionStatus)
             else:
-                replicationArgs = (connectionStatus, defaultCouchServer, self.resource_data )
+                replicationArgs = (connectionStatus, self.resource_data )
                     # Use a thread to do the actual replication.
                 replicationThread = threading.Thread(target=doDistribution, args=replicationArgs)
                 replicationThread.start()

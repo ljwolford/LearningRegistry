@@ -2,7 +2,7 @@ import logging, urllib2, json, couchdb
 from pylons import config
 import lr.lib.helpers as h
 
-from pylons import request, response, session, tmpl_context as c, url
+from pylons import request, response, session, tmpl_context as c, url, config
 from pylons.controllers.util import abort, redirect
 
 from lr.lib.base import BaseController, render
@@ -128,7 +128,7 @@ class SliceController(BaseController):
     def _get_view(self,view_name = '_design/learningregistry-slice/_view/docs',keys=[], include_docs = False, resumptionToken=None, limit=None):
         db_url = '/'.join([config['app_conf']['couchdb.db.resourcedata']])
         
-        opts = {"stale": appConfig['couchdb.stale.flag'], "reduce": False }
+        opts = {"stale": config['app_conf']['couchdb.stale.flag'], "reduce": False }
         
         if include_docs:
             opts["include_docs"] = True
@@ -159,7 +159,7 @@ class SliceController(BaseController):
         db_url = '/'.join([config['app_conf']['couchdb.db.resourcedata']])
 
         
-        opts = {"stale": appConfig['couchdb.stale.flag'], "reduce": True, "group": True }
+        opts = {"stale": config['app_conf']['couchdb.stale.flag'], "reduce": True, "group": True }
         
         if self.enable_flow_control and resumptionToken != None:
             opts["keys"] = resumptionToken["keys"]
