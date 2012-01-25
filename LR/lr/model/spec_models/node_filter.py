@@ -17,7 +17,7 @@ import logging
 log = logging.getLogger(__name__)
 
 def NodeFilterFactory(specDefinitionPath, databaseUrl):
-    
+
     BaseModel = createBaseModel(specDefinitionPath, databaseUrl)
     
     class NodeFilterModel(BaseModel):

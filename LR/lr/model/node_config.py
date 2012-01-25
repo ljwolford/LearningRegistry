@@ -17,6 +17,7 @@ from lr.lib import helpers as h
 import urllib2
 from urlparse import urlparse, urlunparse, ParseResult
 import json
+from pylons import config
 from _default_models import *
 
 _COUCHDB_FIELDS =['_id', '_rev', 

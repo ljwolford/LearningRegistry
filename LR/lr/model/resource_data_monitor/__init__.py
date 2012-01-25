@@ -11,47 +11,31 @@ Created on August 18, 2011
 
 import pprint
 import logging
-from lr.lib import MonitorChanges
 import atexit
-from lr.model._default_models import ResourceDataModel
-from distributable_handler import DistributableHandler
-from resource_data_handler import ResourceDataHandler
-from update_views_handler import  UpdateViewsHandler
-from distribute_threshold_handler import DistributeThresholdHandler
-from track_last_sequence import TrackLastSequence
 from pylons import config
+import os
+import signal
+import subprocess
 
 log = logging.getLogger(__name__)
 
-_RESOURCE_DATA_CHANGE_ID =  "_local/Last_Processed_Change_Sequence"
 
-_RESOURCE_DATA_CHANGE_HANDLERS=[
-    TrackLastSequence(_RESOURCE_DATA_CHANGE_ID),
-    DistributableHandler(),
-    ResourceDataHandler(),
-    UpdateViewsHandler(config['app_conf']['couchdb.threshold.viewupdate']),
-    DistributeThresholdHandler(config['app_conf']['couchdb.threshold.distributes'])
-    ]
+def startMonitor():
+    command = '(cd {0}; python monitor_db_change.py  --c {1})'.format(
+                                    os.path.abspath(os.path.dirname(__file__)),
+                                    os.path.abspath(os.path.dirname(config['__file__'])))
+                                    
+    #Create a process group name as so that the shell and all its process
+    # are terminated when stop is called.
+    monitorProcess = subprocess.Popen(command, shell=True, preexec_fn=os.setsid)
+    return monitorProcess
 
-def _getLastSavedSequence():
-    lastSavedSequence = -1
-    if _RESOURCE_DATA_CHANGE_ID in ResourceDataModel._defaultDB:
-        lastSavedSequence=ResourceDataModel._defaultDB[_RESOURCE_DATA_CHANGE_ID][TrackLastSequence._LAST_CHANGE_SEQ]
-    return lastSavedSequence
-
-    
 def monitorResourceDataChanges(): 
-    options = {'since':_getLastSavedSequence()}
-    log.debug("\n\n-----"+pprint.pformat(options)+"------\n\n")
-
-    changeMonitor = MonitorChanges(config['app_conf']['couchdb.db.resourcedata'],
-                                                            _RESOURCE_DATA_CHANGE_HANDLERS,
-                                                            options)
-    changeMonitor.start()
     
+    monitorProcess = startMonitor()
     #changeMonitor.start(threading.current_thread())
     def atExitHandler():
-        changeMonitor.terminate()
-        log.debug("Last change {0}\n\n".format(changeMonitor._lastChangeSequence))
+        os.killpg(monitorProcess.pid, signal.SIGTERM)
+        log.debug("Change monitor process is halted {0}\n\n")
 
     atexit.register(atExitHandler)

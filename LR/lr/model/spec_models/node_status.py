@@ -11,6 +11,7 @@ Base model class for learning registry data model
 '''
 
 
+
 from base_model import createBaseModel
 import logging
 
@@ -19,10 +20,15 @@ log = logging.getLogger(__name__)
 def NodeStatusFactory(specDefinitionPath, databaseUrl):
     
     BaseModel = createBaseModel(specDefinitionPath, databaseUrl)
-    
-    class NodeStatusModel(BaseModel):
-    
-        def __init__(self, data=None):
-            super(NodeStatusModel, self).__init__(data)
 
+    class NodeStatusModel(BaseModel):
+        
+        def __init__(self, data=None):
+            # Node status is model that create and   does not have any doc_version.
+            # so set its doc_version to node.  This model should probably be removed,
+            # alternate method should be implemented.
+            self.__dict__['doc_version'] = None
+            super(NodeStatusModel, self).__init__(data)
+    
     return NodeStatusModel
+    

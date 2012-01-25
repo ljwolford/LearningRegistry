@@ -9,9 +9,9 @@ Created on August 31, 2011
 '''
 from datetime import timedelta
 from lr.lib.couch_change_monitor import BaseChangeThresholdHandler
-from pylons import config
 import pprint
 import logging
+
 
 log = logging.getLogger(__name__)
 
@@ -26,6 +26,7 @@ class TrackLastSequence(BaseChangeThresholdHandler):
                     countThreshold=25, timeThreshold=timedelta(seconds=60)):
         BaseChangeThresholdHandler.__init__(self, countThreshold, timeThreshold)
         self._sequenceChangeDocId =sequenceChangeDocId
+      
 
     def _saveSequence(self, sequence, database):
         log.debug("Last process change sequence: {0}".format(sequence))

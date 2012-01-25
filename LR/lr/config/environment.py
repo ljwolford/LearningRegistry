@@ -47,10 +47,4 @@ def load_environment(global_conf, app_conf):
         imports=['from webhelpers.html import escape'])
     # CONFIGURATION OPTIONS HERE (note: all config options will override
     # any Pylons config options)
-    import couchdb
-    import lr.lib.helpers as helpers
-    db = couchdb.Database(config['couchdb.db.node'])
-    doc = db[config['lr.nodestatus.docid']]
-    doc['start_time'] = helpers.nowToISO8601Zformat()
-    db.save(doc)
     return config
