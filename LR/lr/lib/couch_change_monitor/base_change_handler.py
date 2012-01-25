@@ -16,6 +16,12 @@ class BaseChangeHandler(object):
         wants to handle the change. Otherwise returns False."""
         raise NotImplementedError, "Implement me"
         
+    def preRunSetup(self):
+        """Method allow setup on the monitoring thread.  Derived class that needs to 
+        setup object or data the must be on the running monitoring thread.  this will
+        call once  in the monitor thread"""
+        pass
+        
     def _handle(self, change, database):
         """Pass the database, since the handler code will be running
         in the same process as the monitor"""

@@ -59,6 +59,7 @@ class MonitorChanges(Thread):
                 [h for h in handlers if isinstance(h, BaseChangeHandler)])
         else: 
             self._changeHandlerSet = set()
+    
 
     def _initLastChangeSequence(self):
         """Get the last sequence change on startup assuming that the  previous changes
@@ -90,7 +91,9 @@ class MonitorChanges(Thread):
     def _updateChangeHandlerSet(self):
         #Check to add and remove handler queue and update hander set.
         while(self._addHandlerQueue.empty() ==False):
-            self._changeHandlerSet.add(self._addHandlerQueue.get())
+            h = self._addHandlerQueue.get()
+            h.preRunSetup()
+            self._changeHandlerSet.add(h)
 
         while(self._removeHandlerQueue.empty() == False):
             self._changeHandlerSet.remove(self._removeHandlerQueue.get())
@@ -131,6 +134,11 @@ class MonitorChanges(Thread):
         log.debug("Start monitoring database : {0} changes PID: {1} since:{2}\n\n".format(
                     str(self._database.name), self.name, self._lastChangeSequence))
         self._errorCount = 0
+        
+        #Running the the handler setup
+        for h in self._changeHandlerSet:
+            h.preRunSetup()
+            
         while(self.is_alive() and self._errorCount < self._MAX_ERROR_RESTART):
             try:
                 self._processChanges()
@@ -182,6 +190,7 @@ if __name__=="__main__":
     h2 = TestThresholdHandler(10, timedelta(seconds=60))
     h3 = TestViewUpdate(5, timedelta(seconds=15))
     
-    mon = MonitorChanges('http://127.0.0.1:5984', "resource_data", [h1, h2, h3])
+    from threading import currentThread
+    mon = MonitorChanges('http://127.0.0.1:5984/resource_data', [h1, h2, h3], currentThread())
     print ("starting the monitoring .....")
     mon.start()
