@@ -16,63 +16,92 @@ import sys
 #Add the config and lr module the sys path so that they can used.
 sys.path.append(path.abspath(path.join(_PWD,"../../config")))
 sys.path.append(path.abspath(path.join(_PWD, "../../../")))
+sys.path.append(path.abspath(path.join(_PWD, "../")))
 
 import pprint
 import logging
 from lr.lib import MonitorChanges
 import atexit
-from lr.model import ResourceDataModel
+import ConfigParser
+from spec_models import ResourceDataFactory
 from distributable_handler import DistributableHandler
 from resource_data_handler import ResourceDataHandler
 from update_views_handler import  UpdateViewsHandler
 from distribute_threshold_handler import DistributeThresholdHandler
 from track_last_sequence import TrackLastSequence
-
+import couchdb
+from datetime import timedelta
 
 log = logging.getLogger(__name__)
 
-_RESOURCE_DATA_CHANGE_ID =  "_local/Last_Processed_Change_Sequence"
+_RESOURCE_DATA_CHANGE_ID =  "_local/Last_Processed_Change_Sequence" 
 
+_config = ConfigParser.ConfigParser()
+ 
 
-def _getLastSavedSequence():
+def _getLastSavedSequence(databaseUrl):
     lastSavedSequence = -1
-    if _RESOURCE_DATA_CHANGE_ID in ResourceDataModel._defaultDB:
-        lastSavedSequence=ResourceDataModel._defaultDB[_RESOURCE_DATA_CHANGE_ID][TrackLastSequence._LAST_CHANGE_SEQ]
+    db = couchdb.Database(databaseUrl)
+    if _RESOURCE_DATA_CHANGE_ID in db:
+        lastSavedSequence=db[_RESOURCE_DATA_CHANGE_ID][TrackLastSequence._LAST_CHANGE_SEQ]
     return lastSavedSequence
 
     
-def monitorResourceDataChanges(config['app_conf'], handlers): 
-    options = {'since':_getLastSavedSequence()}
+def monitorResourceDataChanges(handlers, databaseUrl, lastSeq): 
+    options = {'since': lastSeq}
     log.debug("\n\n-----"+pprint.pformat(options)+"------\n\n")
 
-    changeMonitor = MonitorChanges(config['app_conf']['couchdb.url'], 
-                                                            config['app_conf']['couchdb.db.resourcedata'],
-                                                            _RESOURCE_DATA_CHANGE_HANDLERS,
-                                                            options)
+    changeMonitor = MonitorChanges(databaseUrl, handlers, options)
     changeMonitor.start()
-    
+    changeMonitor.join()
     #changeMonitor.start(threading.current_thread())
+
+
+if __name__ == '__main__':
+    from optparse import OptionParser
+     
+    parser = OptionParser()
+    parser.add_option("-c", "--config-file", dest="configPath", 
+                      help="The full path of the pylons config file.",  metavar="FILE")
+                    
+    (options, args) = parser.parse_args()
+    
+    config = ConfigParser.ConfigParser()
+    config.read(options.configPath)
+    
+    #Set here to the location of the configuration directory.
+    config.set('DEFAULT', 'here', path.abspath(path.dirname(options.configPath)))
+    
+    #Set logging level to same as the lr log level
+    logging.basicConfig(level=logging.DEBUG)#level=config.get('logger_routes', 'level'))
+    
+    ResourceDataModel = ResourceDataFactory(config.get("app:main", "spec.models.resource_data"),
+                                                                           config.get("app:main", "couchdb.db.resourcedata"))
+
+    handlers =[
+        TrackLastSequence(_RESOURCE_DATA_CHANGE_ID),
+        
+        DistributableHandler(config.get("app:main", "spec.models.resource_data"),
+                                          config.get("app:main", "couchdb.db.resourcedata")),
+                                          
+        ResourceDataHandler(config.get("app:main", "spec.models.resource_data"),
+                                            config.get("app:main", "couchdb.db.resourcedata")),
+
+        UpdateViewsHandler(config.get('app:main', 'couchdb.threshold.viewupdate')),
+        
+        DistributeThresholdHandler(config.get('app:main', 'couchdb.db.resourcedata'),
+                                                     config.get('app:main', 'distribute.threshold.count'),
+                                                     timedelta(seconds=int(config.get('app:main', 'distribute.threshold.time'))))
+    ]
+    monitorOpts = {'since': _getLastSavedSequence(config.get('app:main', 'couchdb.db.resourcedata'))}
+    changeMonitor = MonitorChanges(config.get('app:main', 'couchdb.db.resourcedata'), handlers, monitorOpts)
+    
     def atExitHandler():
         changeMonitor.terminate()
         log.debug("Last change {0}\n\n".format(changeMonitor._lastChangeSequence))
 
     atexit.register(atExitHandler)
-    
-if __name__ == '__main__':
+    log.debug("\n\n-----------Start database monintoring-------------------\n\n")
+    changeMonitor.start()
+    changeMonitor.join()
 
-    import lr.config.environment as e
-    
-    config = e.load_environment(e.global_conf, e.app_conf)
-    config['app_conf'] = config['app_conf']
-    
-    handlers =[
-        rackLastSequence(_RESOURCE_DATA_CHANGE_ID),
-        DistributableHandler(),
-        ResourceDataHandler(),
-        UpdateViewsHandler(config['app_conf']['couchdb.threshold.viewupdate']),
-        DistributeThresholdHandler(config['app_conf']['couchdb.threshold.distributes'])
-    ]
-
-    
-    monitorResourceDataChanges(config['app_conf'], handlers)
-    
