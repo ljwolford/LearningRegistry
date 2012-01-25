@@ -10,7 +10,7 @@ import json
 
 
 
-def install(server, dbname, setupInfo):
+def install(databaseUrl, setupInfo):
     custom_opts = {}
     active = getInput("Enable Network Node Description?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
@@ -18,13 +18,7 @@ def install(server, dbname, setupInfo):
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
 
-    must = __NetworkNodeDescriptionServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    print config_doc
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":Network Node Description service", doc)
-    print("Configured Network Node Description service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
-
+    return __NetworkNodeDescriptionServiceTemplate().install(databaseUrl, custom_opts)
 
 
 class __NetworkNodeDescriptionServiceTemplate(ServiceTemplate):
@@ -46,7 +40,7 @@ class __NetworkNodeDescriptionServiceTemplate(ServiceTemplate):
 
 if __name__ == "__main__":
     import couchdb
-    
+
     nodeSetup = {
                  'couchDBUrl': "http://localhost:5984",
                  'nodeUrl': "http://test.example.com"
@@ -60,6 +54,6 @@ if __name__ == "__main__":
     
     nodeSetup["couchDBUrl"] = getInput("Enter the CouchDB URL:", nodeSetup["couchDBUrl"], doesNotEndInSlash)
     nodeSetup["nodeUrl"] = getInput("Enter the public URL of the LR Node", nodeSetup["nodeUrl"], notExample)
-    
+
     server =  couchdb.Server(url= nodeSetup['couchDBUrl'])
     install(server, "node", nodeSetup)

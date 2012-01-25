@@ -9,7 +9,7 @@ import pystache, uuid
 import json
 
 
-def install(server, dbname, setupInfo):
+def install(databaseUrl, setupInfo):
     custom_opts = {}
     active = getInput("Enable OAI-PMH Harvest?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
@@ -27,12 +27,8 @@ def install(server, dbname, setupInfo):
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
     
-    must = __OaiServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname, doc["service_type"]+":OAI-PMH service", doc)
-    print("Configured OAI-PMH Harvest service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
-
+    return __OaiServiceTemplate().install(databaseUrl, custom_opts)
+   
 
 
 
@@ -78,7 +74,7 @@ if __name__ == "__main__":
     
     def doesNotEndInSlash(input=None):
         return input is not None and input[-1] != "/"
-    
+
     def notExample(input=None):
         return input is not None and input != nodeSetup["nodeUrl"]
     

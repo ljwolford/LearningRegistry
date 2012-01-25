@@ -4,29 +4,32 @@ import pystache
 import types
 import urlparse
 import pprint
+from setup_utils import  PublishDoc
+import uuid
+import json
 
 class ServiceTemplate():
     __metaclass__ = abc.ABCMeta
     def __init__(self):
-        self.template = '''
-{
-    "doc_type": "service_description",
-    "doc_version": "0.20.0",
-    "doc_scope": "{{scope}}",
-    "active": {{active}},
-    "service_id": "{{service_id}}",
-    "service_type": "{{service_type}}",
-    "service_name": "{{service_name}}",        
-    "service_version": "{{service_version}}",
-    "service_endpoint": "{{node_endpoint}}{{service_endpoint}}",
-    "service_auth": {
-        "service_authz":    [
-            {{service_authz}}
-        ],
-        "service_key": {{service_key}},
-        "service_https": {{service_https}}
-    }{{#service_data}},"service_data":{{service_data}}{{/service_data}}
-}'''
+        self.template = '''{
+                "doc_type": "service_description",
+                "doc_version": "0.20.0",
+                "doc_scope": "{{scope}}",
+                "active": {{active}},
+                "service_id": "{{service_id}}",
+                "service_type": "{{service_type}}",
+                "service_name": "{{service_name}}",        
+                "service_version": "{{service_version}}",
+                "service_endpoint": "{{node_endpoint}}{{service_endpoint}}",
+                "service_auth": {
+                    "service_authz":    [
+                        {{service_authz}}
+                    ],
+                    "service_key": {{service_key}},
+                    "service_https": {{service_https}}
+                }{{#service_data}},"service_data":{{service_data}}{{/service_data}}
+            }'''
+            
         self.service_data_template = None
         self.authz_data_template = '''{{authz}}'''
         self.opts = {
@@ -53,6 +56,7 @@ class ServiceTemplate():
             return pystache.render(self.service_data_template, kwargs)
         return None
     
+    
     def _authz(self, **kwargs):
         if self.authz_data_template != None:
             if 'authz' in kwargs and isinstance(kwargs['authz'], types.ListType):
@@ -60,11 +64,20 @@ class ServiceTemplate():
             
             return pystache.render(self.authz_data_template, kwargs)
         return None
+        
+    def _getId(self):
+        return "{0}:{1} service".format(self.opts['service_type'], self.opts['service_name'])
 
-    
-    
- 
-    
+    def install(self, databaseUrl, customOpts):
+        
+        config_doc = self.render(**customOpts)
+        doc = json.loads(config_doc)
+        PublishDoc(databaseUrl, self._getId(), doc)
+        print("Configured {0} :\n{1}\n".format(self.opts['service_name'],
+                                                json.dumps(doc, indent=4, sort_keys=True)))
+        
+        return self._getId()
+        
     def render(self, **kwargs):
         self.opts.update(self._optsoverride())
        
@@ -79,7 +92,7 @@ class ServiceTemplate():
                 
             if isinstance(self.opts[key], (types.FunctionType, types.MethodType) ):
                 funcs.append(key)
-       
+    
         for key in funcs:
             self.opts[key] = self.opts[key](**self.opts)
         # Check to see if the service is using https so the service_https is

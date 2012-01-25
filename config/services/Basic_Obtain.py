@@ -8,8 +8,8 @@ from setup_utils import getInput, PublishDoc, isBoolean, YES, isInt
 import pystache, uuid
 import json
 
+def install(databaseUrl, setupInfo):
 
-def install(server, dbname, setupInfo):
     custom_opts = {}
     active = getInput("Enable Basic Obtain?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
@@ -27,14 +27,7 @@ def install(server, dbname, setupInfo):
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
     
-    must = __BasicObtainServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    print config_doc
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":Basic Obtain service", doc)
-    print("Configured Basic Obtain service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
-
-
+    return __BasicObtainServiceTemplate().install(databaseUrl, custom_opts)
 
 
 class __BasicObtainServiceTemplate(ServiceTemplate):
@@ -57,7 +50,7 @@ class __BasicObtainServiceTemplate(ServiceTemplate):
             "service_endpoint": "/obtain",
             "service_key": "false", 
             "service_https": "false",
-            "service_type": "access",   
+            "service_type": "access", 
             "spec_kv_only": False,
             "flow_control": False,
             "id_limit": None,

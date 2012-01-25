@@ -45,7 +45,7 @@ _NETWORK = _config.get("app:main", "couchdb.db.network")
 
 # Dictionary of types services and the corresponding services that are added 
 # by default to the node.  The format is 
-# "<serviceType>":["<list of services of serviceType>"]
+# "<serviceType>":["<list of services of Name>"]
 _DEFAULT_SERVICES = {"administrative":
                                                     ["Network Node Description", 
                                                      "Network Node Services", 
@@ -53,7 +53,8 @@ _DEFAULT_SERVICES = {"administrative":
                                                      "Resource Distribution Network Policy"],
                                         "access":
                                                     ["Basic Obtain", 
-                                                     "OAI-PMH Harvest", "Slice", 
+                                                     "OAI-PMH Harvest", 
+                                                     "Slice", 
                                                      "Basic Harvest", 
                                                      "SWORD APP Publish V1.3"],
                                         "broker":[],
@@ -63,8 +64,8 @@ _DEFAULT_SERVICES = {"administrative":
                                                     ["Basic Publish"]}
                                                     
 #Create specific gateway node service list.  It saves the user from setting up 
-# services that will be available on gateway nodes.  This also avoid the confusion 
-# of setting up services asavailable yet cannot be use since the node was setup 
+# services that are not available on gateway nodes.  This also avoid the confusion 
+# of setting up services as available yet cannot be use since the node was setup 
 # as gateway node.
 _GATEWAY_NODE_SERVICES ={"administrative":
                                                     ["Network Node Description", 
@@ -77,7 +78,7 @@ _GATEWAY_NODE_SERVICES ={"administrative":
 def makePythonic(text):
     return re.sub('''[ \.]''', "_", text)
 
-def publishNodeDescription(server, dbname):
+def publishNodeDescription(databaseUrl):
     node_description = {}
     node_description.update(t.node_description)
     node_description['node_name'] = nodeSetup['node_name']
@@ -86,27 +87,30 @@ def publishNodeDescription(server, dbname):
     node_description["open_connect_source"] = nodeSetup["open_connect_source"]
     node_description["open_connect_dest"] = nodeSetup["open_connect_dest"]
     node_description['node_id'] = uuid4().hex
-    PublishDoc(server, dbname, 'node_description', node_description)
+    PublishDoc(databaseUrl, 'node_description', node_description)
     
-def publishNodeServices(nodeUrl, server, dbname, services=_DEFAULT_SERVICES):
+def publishNodeServices(nodeUrl, databaseUrl, services=_DEFAULT_SERVICES):
     for serviceType in services.keys():
         for serviceName in services[serviceType]:
             plugin = None
             try:
                 plugin = __import__("services.%s" % makePythonic(serviceName), fromlist=["install"])
-                plugin.install(server, _NODE, nodeSetup)
+                plugin.install( _NODE, nodeSetup)
             except Exception as e:
                 if plugin != None:
                     log.exception("Error occurred with %s plugin." % serviceName)
-                publishService(nodeUrl, server, dbname, serviceType, serviceName)
+                    raise(e)
+                else:
+                    print ("\n\n--Cannot find custom plugin for: '{0}:{1}'".format(serviceType, serviceName))
+                    publishService(nodeUrl, databaseUrl, serviceType, serviceName)
 
-def publishNodeConnections(nodeUrl, server, dbname,  nodeName, connectionList):
+def publishNodeConnections(nodeUrl, databaseUrl,  nodeName, connectionList):
     for dest_node_url in connectionList:
         connection = dict(t.connection_description)
         connection['connection_id'] = uuid4().hex
         connection['source_node_url']=nodeUrl
         connection['destination_node_url'] = dest_node_url
-        PublishDoc(server, dbname, "{0}_to_{1}_connection".format(nodeName, dest_node_url), connection)
+        PublishDoc(databaseUrl, "{0}_to_{1}_connection".format(nodeName, dest_node_url), connection)
 
 def publishCouchApps(databaseUrl, appsDirPath):
     import couch_utils
@@ -142,11 +146,22 @@ def setConfigFile(nodeSetup):
     # set the url to for destribute/replication (that is the url that a source couchdb node
     # will use for replication.
     _config.set("app:main", "lr.distribute_resource_data_url",  nodeSetup['distributeResourceDataUrl'])
-    
+
+    if server.version() < "1.1.0":
+        _config.set("app:main", "couchdb.stale.flag", "OK")
+        
     destConfigfile = open(_PYLONS_CONFIG_DEST, 'w')
     _config.write(destConfigfile)
     destConfigfile.close()
-
+      
+      #Re-read the database info to make we have the correct urls
+    global _RESOURCE_DATA, _NODE, _COMMUNITY, _NETWORK
+    _config.read(_PYLONS_CONFIG_DEST)
+    _RESOURCE_DATA = _config.get("app:main", "couchdb.db.resourcedata")
+    _NODE = _config.get("app:main", "couchdb.db.node")
+    _COMMUNITY = _config.get("app:main", "couchdb.db.community")
+    _NETWORK = _config.get("app:main", "couchdb.db.network")
+    
 
 
 if __name__ == "__main__":
@@ -172,41 +187,34 @@ if __name__ == "__main__":
     for k in nodeSetup.keys():
         print("{0}:  {1}".format(k, nodeSetup[k]))
 
-    setConfigFile(nodeSetup)
-    
     server =  couchdb.Server(url= nodeSetup['couchDBUrl'])
-    if server.version() < "1.1.0":
-        _config.set("app:main", "couchdb.stale.flag", "OK")
-    destConfigfile = open(_PYLONS_CONFIG_DEST, 'w')
-    _config.write(destConfigfile)
-    destConfigfile.close()
-
+    setConfigFile(nodeSetup)
     
 
     #Create the databases.
-    CreateDB(server, dblist=[_RESOURCE_DATA])
+    CreateDB(dblist=[_RESOURCE_DATA])
     
     #Delete the existing databases
-    CreateDB(server, dblist=[ _NODE, _NETWORK, _COMMUNITY], deleteDB=True)
+    CreateDB(dblist=[ _NODE, _NETWORK, _COMMUNITY], deleteDB=True)
     
       #Install the services, by default all the services are installed.
     services = _DEFAULT_SERVICES
     if nodeSetup['gateway_node']:
         services = _GATEWAY_NODE_SERVICES
-    publishNodeServices(nodeSetup["nodeUrl"], server, _NODE, services)
+    publishNodeServices(nodeSetup["nodeUrl"], _NODE, services)
     
     #Add the network and community description
-    PublishDoc(server, _COMMUNITY, "community_description", t.community_description)
-    PublishDoc(server, _NETWORK,  "network_description", t.network_description)
+    PublishDoc(_COMMUNITY, "community_description", t.community_description)
+    PublishDoc( _NETWORK,  "network_description", t.network_description)
     policy = {}
     policy.update(t.network_policy_description)
-    PublishDoc(server, _NETWORK,'network_policy_description', policy)
+    PublishDoc( _NETWORK,'network_policy_description', policy)
 
     #Add node description
-    publishNodeDescription(server, _NODE)
+    publishNodeDescription(_NODE)
 
     #Add the node connections
-    publishNodeConnections(nodeSetup["nodeUrl"], server, _NODE,  
+    publishNodeConnections(nodeSetup["nodeUrl"], _NODE,  
                                             nodeSetup["node_name"],  nodeSetup['connections'])
 
 

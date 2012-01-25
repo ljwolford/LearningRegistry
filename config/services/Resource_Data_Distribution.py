@@ -10,7 +10,7 @@ import json
 
 
 
-def install(server, dbname, setupInfo):
+def install(databaseUrl, setupInfo):
     custom_opts = {}
     active = getInput("Enable Resource Data Distribution?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
@@ -18,15 +18,8 @@ def install(server, dbname, setupInfo):
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
     
-    must = __ResourceDataDistributionServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    print config_doc
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":Resource Data Distribution service", doc)
-    print("Configured Resource Data Distribution service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
-
-
-
+    return __ResourceDataDistributionServiceTemplate().install(databaseUrl, custom_opts)
+    
 
 class __ResourceDataDistributionServiceTemplate(ServiceTemplate):
     def __init__(self):
@@ -57,10 +50,10 @@ if __name__ == "__main__":
     
     def notExample(input=None):
         return input is not None and input != nodeSetup["nodeUrl"]
-    
+
     nodeSetup["couchDBUrl"] = getInput("Enter the CouchDB URL:", nodeSetup["couchDBUrl"], doesNotEndInSlash)
     nodeSetup["nodeUrl"] = getInput("Enter the public URL of the LR Node", nodeSetup["nodeUrl"], notExample)
-    
+
     server =  couchdb.Server(url= nodeSetup['couchDBUrl'])
     install(server, "node", nodeSetup)
     

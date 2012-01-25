@@ -9,7 +9,7 @@ import pystache, uuid
 import json
 
 
-def install(server, dbname, setupInfo):
+def install(databaseUrl, setupInfo):
     custom_opts = {}
     active = getInput("Enable Slice?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
@@ -22,16 +22,11 @@ def install(server, dbname, setupInfo):
         custom_opts["id_limit"] = int(active)
         active = getInput("Maximum Docs to Return?", "100", isInt)
         custom_opts["doc_limit"] = int(active)
-        
-        
+
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
-    
-    must = __SliceServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":slice", doc)
-    print("Configured Slice service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
+
+    return __SliceServiceTemplate().install(databaseUrl, custom_opts)
 
 
 
