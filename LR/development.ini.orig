@@ -68,15 +68,23 @@ couchdb.db.community =  %(couchdb.url)s/community
 
 couchdb.db.resourcesview = _design/learningregistry-resources/_view/docs
 couchdb.db.resourcecount = _design/learningregistry-resources/_view/count
-couchdb.threshold.distributes = 1000
+
+# The number of new resource_data document publish the database that will trigger
+# a distribute to all connections
+distribute.threshold.count = 1000
+
+#the number seconds before doing a distribute
+distribute.threshold.time = 36000
+
 couchdb.threshold.viewupdate = 100
+
 couchdb.stale.flag = update_after
 lr.distribute.url = http://localhost/distribute
 lr.obtain.docid = access:Basic Obtain service
 lr.harvest.docid = access:Basic Harvest service
-lr.oaipmh.docid = access:OAI-PMH service
+lr.oaipmh.docid = access:OAI-PMH Harvest service
 lr.nodestatus.docid = node status
-lr.slice.docid = access:slice
+lr.slice.docid = access:Slice service
 lr.sword.docid = publish:SWORD APP Publish V1.3 service
 lr.publish.docid = publish:Basic Publish service
 lr.description.docid = administrative:Network Node Description service
