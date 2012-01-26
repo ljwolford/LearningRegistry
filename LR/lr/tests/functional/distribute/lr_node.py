@@ -99,8 +99,7 @@ class Node(object):
     
     def _setupResourceData(self):
         #Push the filter design document for the ressource_data.
-        setup_utils.CreateDB(self._server, 
-                            dblist=[self._nodeConfig.get("couch_info", "resourcedata")], 
+        setup_utils.CreateDB(dblist=[self._nodeConfig.get("couch_info", "resourcedata")], 
                             deleteDB=True)
 
         couch_utils.pushCouchApp(_RESOURCE_DATA_FILTER_APP,  
@@ -115,11 +114,9 @@ class Node(object):
 
     def _setupNode(self):
         #create the couch db databases
-        self._server = couchdb.Server(url=self._nodeConfig.get("couch_info", "server"))
-        setup_utils.CreateDB(self._server,  dblist=self._getNodeDatabaseList(), deleteDB=True)
+        setup_utils.CreateDB(dblist=self._getNodeDatabaseList(), deleteDB=True)
         policy = dict(nodeTemplate.network_policy_description)
-        setup_utils.PublishDoc(self._server, 
-                                            self._nodeConfig.get("couch_info", "network"), 
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "network"), 
                                             'network_policy_description', policy)
         self._setupResourceData()
 
@@ -133,7 +130,7 @@ class Node(object):
         config_doc = must.render(**custom_opts)
 
         doc = json.loads(config_doc)
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "node") ,
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "node") ,
                           doc["service_type"]+":Resource Data Distribution service", doc)
 
     def _setupPylonsConfig(self):
@@ -151,10 +148,10 @@ class Node(object):
             pylonsConfig.set("server:main", option, self._nodeConfig.get("pylons_server", option))
     
         #Set the ressource data url
-
-        pylonsConfig.set("app:main", "lr.distribute_resource_data_url",  
-                                    urlparse.urljoin(self._nodeConfig.get("couch_info", "server"),
-                                                           self._nodeConfig.get("couch_info", "resourcedata")))
+        
+        pylonsConfig.set("app:main", "lr.distribute_resource_data_url", 
+                                  self._nodeConfig.get("couch_info", "resourcedata"))
+    
         #change the logging level to the highest level to avoid spamming log.
         #pylonsConfig.set("logger_lr", "level", "CRITICAL") 
         
@@ -171,15 +168,15 @@ class Node(object):
         self._networkDescription["community_id"] = community
         self._nodeDescription["community_id"] = community
         
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "node"),  
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "node"),  
                                             self._nodeDescription["doc_type"] , 
                                             self._nodeDescription)
                                             
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "network"),
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "network"),
                                             self._networkDescription["doc_type"], 
                                             self._networkDescription)
         
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "community"),
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "community"),
                                             self._communityDescription["doc_type"], 
                                             self._communityDescription)
 
@@ -189,11 +186,11 @@ class Node(object):
         self._networkDescription["network_id"] = network
         self._nodeDescription["network_id"] = network
        
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "node"),  
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "node"),  
                                             self._nodeDescription["doc_type"] , 
                                             self._nodeDescription)
                                             
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "network"),
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "network"),
                                             self._networkDescription["doc_type"], 
                                             self._networkDescription)
     
@@ -206,7 +203,7 @@ class Node(object):
        self._nodeDescription["active"]= isActive
        self._nodeDescription["node_admin_identity"] = "testNode@admin.distribute"
        
-       setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "node"),  
+       setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "node"),  
                                         self._nodeDescription["doc_type"] , 
                                         self._nodeDescription)
         
@@ -216,13 +213,13 @@ class Node(object):
         self._nodeFilterDescription["custom_filter"] = custom_filter
         self._nodeFilterDescription["filter"]=filter
         
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "node"),  
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "node"),  
                                         self._nodeFilterDescription["filter_name"] , 
                                         self._nodeFilterDescription)
   
 
     def publishResourceData(self, docs):
-        resourceDatabase = self._server[self._nodeConfig.get("couch_info", "resourcedata")]
+        resourceDatabase = couchdb.Database(self._nodeConfig.get("couch_info", "resourcedata"))
         for d in docs:
             doc = {}
             doc.update(d)
@@ -244,13 +241,12 @@ class Node(object):
         connection['source_node_url']=self._getNodeUrl()
         connection['gateway_connection'] = gateway_connection
         connection['destination_node_url'] = destinationUrl
-        setup_utils.PublishDoc(self._server, self._nodeConfig.get("couch_info", "node"),  
+        setup_utils.PublishDoc(self._nodeConfig.get("couch_info", "node"),  
                                             connection['connection_id'],
                                             connection)
 
     def _getResourceDataChangeUrl(self):
-        return "{0}/{1}/{2}".format(self._server.resource.url,
-                                            self._nodeConfig.get("couch_info", "resourcedata"),
+        return "{0}/{1}".format(self._nodeConfig.get("couch_info", "resourcedata"),
                                             "_changes")
 
     def waitOnChangeMonitor(self):
@@ -329,10 +325,8 @@ class Node(object):
         the results. """
         if hasattr(self, '_pylonsProcess'):
             data = json.dumps({"dist":"dist"})
-            request = urllib2.Request(urlparse.urljoin(self._getNodeUrl(), "distribute"), 
-                                                    data,
-                                                    {'Content-Type':'application/json; charset=utf-8'})
-                                                    
+            request = urllib2.Request(urlparse.urljoin(self._getNodeUrl(), "distribute"))
+            request.get_method = lambda:'POST'
             self._distributeResultsList.append(json.load(urllib2.urlopen(request))) 
             print("Distribute reponse: \n{0}".format(pprint.pformat(self._distributeResultsList[-1])))
             
@@ -342,8 +336,7 @@ class Node(object):
             return self._distributeResultsList[-1]
     
     def getResourceDataDocs(self, filter_description=None, doc_type='resource_data', include_docs=True):
-        
-        db = self._server[self._nodeConfig.get("couch_info", "resourcedata")]        
+        db = couchdb.Database(self._nodeConfig.get("couch_info", "resourcedata"))
         #For source node get all the resource_data documents using the filter
         # that was using to distribute the document to destination node.
         options = { "filter": "filtered-replication/change_feed_filter",
@@ -446,7 +439,9 @@ class Node(object):
         print("node '{0}' started ....\n".format(self._nodeName) )
     
     def resetResourceData(self):
-        del self._server[ self._nodeConfig.get("couch_info", "resourcedata")]
+        request = urllib2.Request( self._nodeConfig.get("couch_info", "resourcedata"))
+        request.get_method = lambda : 'DELETE'
+        urllib2.urlopen(request)
         self._setupResourceData()
         
     def restart(self):
@@ -497,7 +492,9 @@ class Node(object):
         #Delete the generated database.
         for database in self._getNodeDatabaseList():
             try:
-                del self._server[database]
+                request = urllib2.Request(database)
+                request.get_method = lambda : 'DELETE'
+                log.debug(urllib2.urlopen(request).readlines())
             except Exception as e:
                 log.exception(e)
                 
