@@ -34,7 +34,7 @@ def CreateDB(dblist=[], deleteDB=False):
             try:
                 request = urllib2.Request(db)
                 request.get_method = lambda : "DELETE"
-                urllib2.urlopen(request)
+                
             except urllib2.URLError as ex:
                 if ex.code != 404:
                     raise(ex)
@@ -43,9 +43,10 @@ def CreateDB(dblist=[], deleteDB=False):
                 request.get_method = lambda : "PUT"
                 urllib2.urlopen(request)
                 print("Created DB  at '{0}'\n".format(db))
-            except Exception as e:
-                print("Exception while creating database: {0}\n".format(e) )
-                raise(e)
+            except urllib2.URLError as e:
+                if e.code != 412:
+                    print("Exception while creating database: {0}\n".format(e) )
+                    raise(e)
         else:
             existingDB = couchdb.Database(db)
             print("Using existing DB '{0}'\n".format(db))
