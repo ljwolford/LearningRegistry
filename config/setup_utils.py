@@ -35,9 +35,9 @@ def CreateDB(dblist=[], deleteDB=False):
                 request = urllib2.Request(db)
                 request.get_method = lambda : "DELETE"
                 urllib2.urlopen(request)
-            except Exception as ex:
-                print(ex)
-                pass
+            except urllib2.URLError as ex:
+                if ex.code != 404:
+                    raise(ex)
             try:
                 request = urllib2.Request(db)
                 request.get_method = lambda : "PUT"
