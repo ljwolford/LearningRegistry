@@ -42,7 +42,7 @@ qualname = routes.middleware
 level = INFO
 
 [server:main]
-use = egg:Paste#http
+use = egg:Flup#fcgi_thread
 host = 127.0.0.1
 port = 5000
 
