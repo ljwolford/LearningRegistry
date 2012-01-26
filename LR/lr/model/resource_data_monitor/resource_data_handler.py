@@ -44,11 +44,11 @@ class ResourceDataHandler(BaseChangeHandler):
             (change[_DOC].get(_DOC_TYPE) ==self._docType)) :
                 return True
         return False
-
-    def _updateDistributableData(self, newDistributableData, distributableDocId):
+    
+    def _updateDistributableData(self, newDistributableData, distributableDocId, database):
         # Use the ResourceDataModel class to create an object that 
         # contains only a the resource_data spec data.
-        currentDistributable = self._destinationDB[distributableDocId]
+        currentDistributable = database[distributableDocId]
         temp = self.ResourceDataModel(currentDistributable)._specData
         del temp['node_timestamp']
          
@@ -57,17 +57,17 @@ class ResourceDataHandler(BaseChangeHandler):
             log.debug("\n\nUpdate distribuatable doc:\n")
             log.debug("\n{0}\n\n".format(pprint.pformat(currentDistributable)))
             try:
-                self._destinationDB.update([currentDistributable])
+                database.update([currentDistributable])
             except Exception as e:
                 log.error("Failed to update existing distributable doc: {0}".format(
                                 pprint.pformat(currentDistributable)))
                 log.exception(e)
         
         
-    def _addDistributableData(self, distributableData, distributableDocId):
+    def _addDistributableData(self, distributableData, distributableDocId, database):
         try:
             log.debug('Adding distributable doc %s...\n' % distributableDocId)
-            self._destinationDB[distributableDocId] = distributableData
+            database[distributableDocId] = distributableData
         except Exception as e:
             log.error("Cannot save distributable document %s\n" % distributableDocId)
             log.exception(e)
@@ -82,11 +82,18 @@ class ResourceDataHandler(BaseChangeHandler):
         #change thet doc_type 
         distributableDoc['doc_type']='resource_data_distributable'
         distributableDocId= change['doc']['_id']+"-distributable"
-       
+        
+        # Use the change monitor database as destination db if it is the same url
+        # as the defined destinationDB so that everything stays in the same 
+        # resource context when checking if the document is already in the database
+        destinationDB = self._destinationDB
+        if self._destinationDB.resource.url == database.resource.url:
+            destinationDB = database       
+
         # Check to see if a corresponding distributatable document exist.
         # not create a new distribuation document without the 
         # node_timestamp and _id+distributable.
-        if (distributableDocId in self._destinationDB) == False:
-            self._addDistributableData(distributableDoc, distributableDocId)
+        if (distributableDocId in destinationDB) == False:
+            self._addDistributableData(distributableDoc, distributableDocId, destinationDB)
         else:
-            self._updateDistributableData(distributableDoc, distributableDocId)
+            self._updateDistributableData(distributableDoc, distributableDocId, destinationDB)

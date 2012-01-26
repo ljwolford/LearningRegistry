@@ -21,9 +21,9 @@ log = logging.getLogger(__name__)
 
 
 def startMonitor():
-    command = '(cd {0}; python monitor_db_change.py  --c {1})'.format(
+    command = '(cd {0}; python monitor_dbchange.py  --c {1})'.format(
                                     os.path.abspath(os.path.dirname(__file__)),
-                                    os.path.abspath(os.path.dirname(config['__file__'])))
+                                    os.path.abspath(config['__file__']))
                                     
     #Create a process group name as so that the shell and all its process
     # are terminated when stop is called.
@@ -33,7 +33,7 @@ def startMonitor():
 def monitorResourceDataChanges(): 
     
     monitorProcess = startMonitor()
-    #changeMonitor.start(threading.current_thread())
+
     def atExitHandler():
         os.killpg(monitorProcess.pid, signal.SIGTERM)
         log.debug("Change monitor process is halted {0}\n\n")

@@ -58,8 +58,7 @@ def monitorResourceDataChanges(handlers, databaseUrl, lastSeq):
 
 
 if __name__ == '__main__':
-    from optparse import OptionParser
-     
+    from optparse import OptionParser    
     parser = OptionParser()
     parser.add_option("-c", "--config-file", dest="configPath", 
                       help="The full path of the pylons config file.",  metavar="FILE")
@@ -68,12 +67,15 @@ if __name__ == '__main__':
     
     config = ConfigParser.ConfigParser()
     config.read(options.configPath)
+        
+    #Set logging level to same as the lr log level
+    logging.basicConfig(level=config.get('logger_routes', 'level'))
+    
+    log.debug("Using pylons configuration files '{0}'".format(options.configPath))
     
     #Set here to the location of the configuration directory.
     config.set('DEFAULT', 'here', path.abspath(path.dirname(options.configPath)))
-    
-    #Set logging level to same as the lr log level
-    logging.basicConfig(level=logging.DEBUG)#level=config.get('logger_routes', 'level'))
+
     
     ResourceDataModel = ResourceDataFactory(config.get("app:main", "spec.models.resource_data"),
                                                                            config.get("app:main", "couchdb.db.resourcedata"))

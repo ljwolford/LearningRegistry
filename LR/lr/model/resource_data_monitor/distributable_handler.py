@@ -46,19 +46,19 @@ class DistributableHandler(BaseChangeHandler):
                 return True
         return False
         
-    def _getResourceDataDoc(self, docID):
+    def _getResourceDataDoc(self, docID, database):
         # There exist already a resource_data document for the distributable
         # get it and see if it needs to be updated.
         try:
-            return  self.ResourceDataModel(self._destinationDB[docID])._specData
+            return  self.ResourceDataModel(database[docID])._specData
         except Exception as e:
             log.error("Cannot find existing resource_data doc for distributable: {0}\n".format(
                             docID))
             log.exception(e)
             return None
     
-    def _updateResourceData(self, newResourceData):
-        currentResourceData = self._getResourceDataDoc(newResourceData['doc_ID'])
+    def _updateResourceData(self, newResourceData, database):
+        currentResourceData = self._getResourceDataDoc(newResourceData['doc_ID'], database)
         if currentResourceData == None:
             return 
             
@@ -72,19 +72,19 @@ class DistributableHandler(BaseChangeHandler):
             currentResourceData.update(newResourceData)
             try:
                 log.debug("\nUpdate existing resource data from distributable\n")
-                self._destinationDB.update([currentResourceData])
+                database.update([currentResourceData])
             except Exception as e:
                 log.error("\n\nFailed to udpate existing resource_data doc:\n{0}".format(
                                 pprint.pformat(currentResourceData)))
                 log.exception(e)
 
-    def _addResourceData(self, resourceDataCopy):
+    def _addResourceData(self, resourceDataCopy, database):
         # If corresponding resource_data type document is not already in the database
         # for the distributable document, create a local resource_data document and
         # add it the database
         try:
             log.debug("Adding new resource_data for distributable")
-            self._destinationDB[resourceDataCopy['doc_ID']] = resourceDataCopy
+            database[resourceDataCopy['doc_ID']] = resourceDataCopy
         except Exception as e:
             log.error("\n\nCannot get current document:  {0}".format(
                             pprint.pformat(resourceDataCopy)))
@@ -96,9 +96,16 @@ class DistributableHandler(BaseChangeHandler):
         resourceDataCopy = self.ResourceDataModel(change['doc'])._specData
         resourceDataCopy['doc_type'] = 'resource_data'
 
+        # Use the change monitor database as destination db if it is the same url
+        # as the defined destinationDB so that everything stays in the same 
+        # resource context when checking if the document is already in the database
+        destinationDB = self._destinationDB
+        if self._destinationDB.resource.url == database.resource.url:
+            destinationDB = database
+
         # Add the corresponding resource data document to database 
         # if not already in the database.  Otherwise try to update. 
-        if (resourceDataCopy['doc_ID'] in self._destinationDB) == False:
-            self._addResourceData(resourceDataCopy)
+        if (resourceDataCopy['doc_ID'] in destinationDB) == False:
+            self._addResourceData(resourceDataCopy, destinationDB)
         else:
-            self._updateResourceData(resourceDataCopy)
+            self._updateResourceData(resourceDataCopy, destinationDB)
