@@ -31,7 +31,7 @@ class MonitorChanges(Thread):
             may get unstable.
         """
         Thread.__init__(self, None, None, "learningRegistryChangeMonitor", args, kwargs)
-        self._database = couchdb.Database(databaseUrl)
+        self._databaseUrl = databaseUrl
         self._callerThread = None
         self._addHandlerQueue = Queue()
         self._removeHandlerQueue = Queue()
@@ -130,9 +130,10 @@ class MonitorChanges(Thread):
             self._removeHandlerQueue.put(handler)
 
     def run(self):
+        self._database = couchdb.Database(self._databaseUrl)
         # As long as we are running keep monitoring the change feed for changes.
         log.debug("Start monitoring database : {0} changes PID: {1} since:{2}\n\n".format(
-                    str(self._database.name), self.name, self._lastChangeSequence))
+                    str(self._databaseUrl), self.name, self._lastChangeSequence))
         self._errorCount = 0
         
         #Running the the handler setup
@@ -143,9 +144,13 @@ class MonitorChanges(Thread):
             try:
                 self._processChanges()
                 self._errorCount = 0
+            #Exit if the database is deleted.
+            except  couchdb.ResourceNotFound as ex:
+                log.error("Database {0} is no longer accessible...".format(self._database.resource.url))
+                break
             except Exception as e:
                 log.error("Error processing {0} changes. Restart change monitor....\n\n".format(
-                str(self._database.name)))
+                str(self._database.resource.url)))
                 log.exception(e)
                 self._errorCount = self._errorCount + 1
 
@@ -154,7 +159,8 @@ class MonitorChanges(Thread):
     
     def terminate(self):
         log.debug("\n\n------------I got terminated ...---------------\n\n")
-    
+     
+          
     def start(self, callerThread=None):
         if isinstance(callerThread, Thread):
             self._callerThread = callerThread
