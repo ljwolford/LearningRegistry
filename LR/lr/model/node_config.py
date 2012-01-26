@@ -279,7 +279,7 @@ class LRNodeModel(object):
                                     'community_id': self.nodeDescription.community_id,
                                     'gateway_node':self.nodeDescription.gateway_node,
                                     'social_community':self.communityDescription.social_community,
-                                    'resource_data_url': appConfig['lr.distribute_resource_data_url'],
+                                    'resource_data_url': config['app_conf']['lr.distribute_resource_data_url'],
                                     'filter_description':self.filterDescription.specData
                                 }
         return distributeInfo
