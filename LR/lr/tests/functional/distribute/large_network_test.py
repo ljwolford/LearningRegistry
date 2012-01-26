@@ -45,12 +45,14 @@ def generateNodeConfig(numberOfNodes):
         config.set("pylons_server", "port", port)
         config.set("pylons_server", "use", "egg:Paste#http")
         #Set the couchdb sutff
-        config.set("couch_info", "server",  "http://localhost:5984")
-        config.set("couch_info", "resourcedata", nodeName+"_resource_data")
-        config.set("couch_info", "community", nodeName+"_community")
-        config.set("couch_info", "node",  nodeName+"_node")
-        config.set("couch_info", "network",  nodeName+"_network")
-        
+        serverUrl = "http://localhost:5984"
+        config.set("couch_info", "server",  serverUrl )
+        config.set("couch_info", "resourcedata", 
+                        "{0}/{1}_resource_data".format(serverUrl, nodeName))
+                        
+        for db in ["community", "node", "network"]:
+            config.set("couch_info", db, "{0}/{1}_{2}".format(serverUrl, nodeName, db))
+      
         nodeConfigs[nodeName] = config
     return nodeConfigs
 
