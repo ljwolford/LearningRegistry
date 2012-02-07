@@ -4,13 +4,25 @@ Created on Aug 16, 2011
 @author: jklo
 '''
 from service_template import ServiceTemplate
-from setup_utils import getInput, PublishDoc, isBoolean, YES, isInt
+from setup_utils import getInput, PublishDoc, isBoolean, YES, isInt, getDocFromExistingCouchDB
 import pystache, uuid
 import json
 
 
 def install(server, dbname, setupInfo):
     custom_opts = {}
+    
+    '''
+    print('in install of basic harvest!!!\n')
+
+    try:
+        harvestDoc = getDocFromExistingCouchDB(dbName=dbname, docID="access:Basic Harvest service")
+        harvestActive = str(harvestDoc['active'])[:1]
+        harvestFlowControl = str(harvestDoc['flow_control'])
+    except Exception, e:
+        raise e
+    '''
+
     active = getInput("Enable Basic Harvest?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
     

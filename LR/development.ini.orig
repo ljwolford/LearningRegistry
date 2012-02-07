@@ -52,6 +52,8 @@ use = egg:LR
 full_stack = true
 static_files = true
 cache_dir = %(here)s/data
+endpoint.url = http://localhost
+node.name = testname
 
 beaker.session.key = lr
 beaker.session.secret = somesecre

@@ -11,6 +11,12 @@ import json
 
 def install(server, dbname, setupInfo):
     custom_opts = {}
+
+    #obtainDoc = getDocfromExistingCouchDB(dbName=dbname, docID="access: Basic Harvest service")
+    #currentActive = "T"
+    #currentFlowControl = "F"
+
+
     active = getInput("Enable Basic Obtain?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
     
