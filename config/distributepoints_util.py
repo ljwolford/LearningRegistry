@@ -1,5 +1,4 @@
-from setup_utils import *
-from setup_node import *
+import setup_utils as su
 
 
 def setupDistributionConnections(currentList):
@@ -8,9 +7,12 @@ def setupDistributionConnections(currentList):
 
 	flag = True
 	while flag:
-		print("Current distribution connections:")
-		for item in currentList:
-			print item
+		print("\nCurrent distribution connections:")
+		if len(currentList) > 0:
+			for item in currentList:
+				print item
+		else:
+			print("No distribution connections")		
 
 		result = raw_input("\n[A]dd, [R]emove connections, [E]xit: ")
 
@@ -52,7 +54,7 @@ def getExistingDistrubutionConnections(couchdbURL, dbName, nodeName):
     connDocList = []
 
     try:
-        connDocs = getDocFromExistingCouchDB(dbName, couchdbURL,allDocs=True)
+        connDocs = su.getDocFromExistingCouchDB(dbName, couchdbURL,allDocs=True)
         
         for connDoc in connDocs['rows']:
             if connFilter in connDoc['id']:
@@ -73,7 +75,7 @@ def getExistingDistrubtionURLs(couchdbURL, dbName, connDocList):
 
     for connDoc in connDocList:
         try:
-            connURL = getDocFromExistingCouchDB(dbName, couchdbURL, connDoc)
+            connURL = su.getDocFromExistingCouchDB(dbName, couchdbURL, connDoc)
             connUrlList.append(connURL['destination_node_url'])
 
         except Exception, e:
@@ -83,13 +85,12 @@ def getExistingDistrubtionURLs(couchdbURL, dbName, connDocList):
     return connUrlList
 
 
-
+'''
 if __name__ == "__main__":
 	import os
 	import couchdb
 	import ConfigParser
-	from setup_utils import *
-	from setup_node import *
+
 
 	scriptPath = os.path.dirname(os.path.abspath(__file__))
 	_PYLONS_CONFIG =  os.path.join(scriptPath, '..', 'LR', 'development.ini')
@@ -114,3 +115,4 @@ if __name__ == "__main__":
 	existingDistributionList = getExistingDistrubutionConnections(_DEFAULT_COUCHDB_URL, _NODE, existingNodeName)
 	newDistributionList = setupDistributionConnections(existingDistributionList)
 	publishNodeConnections(_DEFAULT_ENDPOINT, server, _NODE, existingNodeName, newDistributionList)
+'''	

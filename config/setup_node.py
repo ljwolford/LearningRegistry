@@ -125,38 +125,40 @@ def publishCouchApps(databaseUrl, appsDirPath):
     couch_utils.pushAllCouchApps(appsDirPath, databaseUrl)
 
 
-def getCommunityId(couchdbURL, dbName, docID):
+def getCommunityId(couchdbURL, dbName, docID, newNode):   
     communityID = t.community_description['community_id']
 
-    try:
-        comm_id = getDocFromExistingCouchDB(dbName, couchdbURL, docID)
+    if not newNode:
+        try:
+            comm_id = getDocFromExistingCouchDB(dbName, couchdbURL, docID)
 
-        communityID = comm_id['community_id']
+            communityID = comm_id['community_id']
         
-    except Exception, e:
-        print(e)
-        print('Connection to Community database not established, using default community ID')
+        except Exception, e:
+            print(e)
+            print('Connection to Community database not established, using default community ID')
 
     return communityID
 
-def getNetworkId(couchdbURL, dbName, docID):
+def getNetworkId(couchdbURL, dbName, docID, newNode):
     networkID = t.network_description['network_id']
     
-    try:
-        net_id = getDocFromExistingCouchDB(dbName, couchdbURL, docID)
+    if not newNode:
+        try:
+            net_id = getDocFromExistingCouchDB(dbName, couchdbURL, docID)
         
-        networkID = net_id['network_id']
+            networkID = net_id['network_id']
 
-    except Exception, e:
-        print(e)
-        print('Connection to Network database not established, using default network ID\n')
+        except Exception, e:
+            print(e)
+            print('Connection to Network database not established, using default network ID\n')
 
     return networkID
 
 
 def setCommunityId():
     community = getInput("Enter the community id", "{0}".format(getCommunityId(nodeSetup['couchDBUrl'], 
-                                                                _COMMUNITY,'community_description')))
+                                                                _COMMUNITY,'community_description',nodeSetup['newNode'])))
     t.community_description['community_id'] = community
     t.community_description['community_name'] = community
     t.community_description['community_description'] = community
@@ -165,7 +167,7 @@ def setCommunityId():
     
 def setNetworkId():
     network = getInput("Enter the network id", "{0}".format(getNetworkId(nodeSetup['couchDBUrl'],
-                                                            _NETWORK, 'network_description')))
+                                                            _NETWORK, 'network_description',nodeSetup['newNode'])))
     t.network_description['network_id'] = network
     print(str(t.network_description['network_id']))
     t.network_description['network_name'] = network

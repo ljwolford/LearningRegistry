@@ -14,21 +14,41 @@ import ConfigParser
 import os
 import urllib2
 import json
-#from connections_util import setupDistributionConnections
 import distributepoints_util as dp
  
 
 scriptPath = os.path.dirname(os.path.abspath(__file__))
-_PYLONS_CONFIG =  os.path.join(scriptPath, '..', 'LR', 'development.ini')
+_PYLONS_CONFIG =  os.path.join(scriptPath, '..', 'LR', 'development.ini.orig')
 _config = ConfigParser.ConfigParser()
 _config.read(_PYLONS_CONFIG)
 
-#Default url to the couchdb server.
-_DEFAULT_COUCHDB_URL = _config.get("app:main", "couchdb.url")
-_NODE = _config.get("app:main", "couchdb.db.node")
+#Default values
+_DEFAULT_COUCHDB_URL = "http://localhost:5984/"
+try:
+    _DEFAULT_COUCHDB_URL = _config.get("app:main", "couchdb.url")
+except Exception, e:
+    print('Cannot find couchdb url from config file')
+
+_NODE = "node"
+try:
+    _NODE = _config.get("app:main", "couchdb.db.node")
+except Exception, e:
+    print('Cannot find couchdb node from config file')
+
+_DEFAULT_ENDPOINT = "http://localhost"
+try:
+    _DEFAULT_ENDPOINT = _config.get("app:main", "node.endpoint.url")
+except Exception, e:
+    print('Cannot find node endpoint url from config file')
+
+_DEFAULT_DISTRIBUTE_RESOURCE_DATA_URL = _DEFAULT_ENDPOINT + "/resource_data"
+try:
+    _DEFAULT_DISTRIBUTE_RESOURCE_DATA_URL = _config.get("app:main", "lr.distribute_resource_data_url")
+except Exception, e:
+    print('Cannot find distribute resource data url from config file')
+
 _NODE_DESCRIPTION = "node_description"
-_DEFAULT_ENDPOINT = _config.get("app:main", "node.endpoint.url")
-_DEFAULT_DISTRIBUTE_RESOURCE_DATA_URL = _config.get("app:main", "lr.distribute_resource_data_url")
+
 
 
 def publishService(nodeUrl, server, dbname, serviceType, serviceName):
@@ -109,9 +129,9 @@ def getInput(question, defaultInput=None,  validateFunc=None):
             else:
                 continue
 
+
         if validateFunc is not None and validateFunc(userInput) == False:
             continue
-           
         return userInput
 
 
@@ -134,70 +154,80 @@ def isInt(userInput):
     except ValueError:
         return False
 
-def canEditDistributeConnections(userInput):
-    if userInput == 'Edit' or userInput == 'edit':
-        return True
-    else:
-        inputListValues = userInput.split(' ')
-        return inputListValues[1:] == defaultNodeDescriptionValues['_DEFAULT_CONNECTIONS'][1:]
-
-
 def getDocFromExistingCouchDB(dbName, couchdbURL=_DEFAULT_COUCHDB_URL, docID='', allDocs=False):
     resp = {}
 
-    print('in getDocFromExistingCouchDB')
     if allDocs:
         path = '/'.join([dbName,"_all_docs"])
     else:
         path = '/'.join([dbName, urllib2.quote(docID,'')])
 
     URI = couchdbURL + path
-    print (URI)
+
     try:
         req = urllib2.Request(URI)
         resp = json.loads(urllib2.urlopen(req).read())
     except Exception, e:
-        print e
+        raise e
         print("Could not establish couchDB connection")
 
     return resp    
 
-def getNodeDescriptionValues(couchdbURL, dbName, docID, endpointURL):
-    nodeDescriptionValues = {'_DEFAULT_NODE_NAME' : "Node@" + endpointURL,
-                             '_DEFAULT_NODE_ADMIN_IDENTITY' : "admin@learningregistry.org",  
-                             '_DEFAULT_NODE_DESCRIPTION' : "Node@" + endpointURL,   
-                             '_DEFAULT_GATEWAY_NODE' : "F",
-                             '_DEFAULT_OPEN_CONNECT_SOURCE' : "T",   
-                             '_DEFAULT_OPEN_CONNECT_DEST' : "T",
-                            }
+def getExistingNodeDescriptionValues(couchdbURL, dbName, docID, endpointURL):
     
+    newNodeDescriptionValues = {}
     try:
         node_desc = getDocFromExistingCouchDB(dbName, couchdbURL, docID)
         
-        nodeDescriptionValues['_DEFAULT_NODE_NAME'] = node_desc['node_name']
-        nodeDescriptionValues['_DEFAULT_NODE_ADMIN_IDENTITY'] = node_desc['node_admin_identity']
-        nodeDescriptionValues['_DEFAULT_NODE_DESCRIPTION'] = node_desc['node_description']
-        nodeDescriptionValues['_DEFAULT_GATEWAY_NODE'] = str(node_desc['gateway_node'])[:1]
-        nodeDescriptionValues['_DEFAULT_OPEN_CONNECT_SOURCE'] = str(node_desc['open_connect_source'])[:1]
-        nodeDescriptionValues['_DEFAULT_OPEN_CONNECT_DEST'] = str(node_desc['open_connect_dest'])[:1]
+        newNodeDescriptionValues['_DEFAULT_NODE_NAME'] = node_desc['node_name']
+        newNodeDescriptionValues['_DEFAULT_NODE_ADMIN_IDENTITY'] = node_desc['node_admin_identity']
+        newNodeDescriptionValues['_DEFAULT_NODE_DESCRIPTION'] = node_desc['node_description']
+        newNodeDescriptionValues['_DEFAULT_GATEWAY_NODE'] = str(node_desc['gateway_node'])[:1]
+        newNodeDescriptionValues['_DEFAULT_OPEN_CONNECT_SOURCE'] = str(node_desc['open_connect_source'])[:1]
+        newNodeDescriptionValues['_DEFAULT_OPEN_CONNECT_DEST'] = str(node_desc['open_connect_dest'])[:1]
             
     except Exception, e:
-        print(e)
+        raise(e)
         print('Connection to Node database not established, using default setup values')
 
-    return nodeDescriptionValues
-
+    return newNodeDescriptionValues
 
 
 def getSetupInfo():
 
-    '''Set the node values the user will be prompted with'''
-    defaultNodeDescriptionValues = getNodeDescriptionValues(_DEFAULT_COUCHDB_URL, _NODE, _NODE_DESCRIPTION, _DEFAULT_ENDPOINT) 
-    defaultNodeDescriptionValues['_DEFAULT_CONNECTIONS'] =  dp.getExistingDistrubutionConnections(_DEFAULT_COUCHDB_URL,_NODE,defaultNodeDescriptionValues['_DEFAULT_NODE_NAME'])   
-
-
     """Get the user node info"""
     nodeSetup = {}
+
+    '''See if the user is updating or creating a new node'''
+    flag = True
+    while(flag):
+        newOrUpdate = raw_input("\nCreate a [N]ew node or [U]pdate your existing node: ")
+        if newOrUpdate == 'U' or newOrUpdate == 'u':
+            '''Set the node values the user will be prompted with'''
+            nodeDescriptionValues = getExistingNodeDescriptionValues(_DEFAULT_COUCHDB_URL, _NODE, _NODE_DESCRIPTION, _DEFAULT_ENDPOINT) 
+            nodeDescriptionValues['_DEFAULT_CONNECTIONS'] =  dp.getExistingDistrubutionConnections(_DEFAULT_COUCHDB_URL,_NODE,nodeDescriptionValues['_DEFAULT_NODE_NAME'])   
+            nodeSetup['newNode'] = False
+            flag = False
+
+        elif newOrUpdate == 'N' or newOrUpdate == 'n':
+        
+            nodeDescriptionValues = {'_DEFAULT_NODE_NAME' : "Node@" + _DEFAULT_ENDPOINT,
+                                    '_DEFAULT_NODE_ADMIN_IDENTITY' : "admin@learningregistry.org",  
+                                    '_DEFAULT_NODE_DESCRIPTION' : "Node@" + _DEFAULT_ENDPOINT,   
+                                    '_DEFAULT_GATEWAY_NODE' : "F",
+                                    '_DEFAULT_OPEN_CONNECT_SOURCE' : "T",   
+                                    '_DEFAULT_OPEN_CONNECT_DEST' : "T",
+                                    '_DEFAULT_CONNECTIONS' : []
+                                    }
+            nodeSetup['newNode'] = True
+            flag = False
+
+        else:
+            print('\nNot an option, try again\n')    
+    
+
+
+    
     
     nodeUrl = getInput("\nEnter the node service endpoint URL", 
                                             _DEFAULT_ENDPOINT, isURL)
@@ -210,37 +240,53 @@ def getSetupInfo():
 
     
     nodeName = getInput("Enter your node name", 
-                                            defaultNodeDescriptionValues['_DEFAULT_NODE_NAME'])
+                                            nodeDescriptionValues['_DEFAULT_NODE_NAME'])
     nodeSetup['node_name'] = nodeName
 
     
     nodeDescription = getInput("Enter your node description", 
-                                            defaultNodeDescriptionValues['_DEFAULT_NODE_DESCRIPTION'])
+                                            nodeDescriptionValues['_DEFAULT_NODE_DESCRIPTION'])
     nodeSetup['node_description'] = nodeDescription
 
 
     adminUrl = getInput("Enter node admin indentity",
-                                            defaultNodeDescriptionValues['_DEFAULT_NODE_ADMIN_IDENTITY'])
+                                            nodeDescriptionValues['_DEFAULT_NODE_ADMIN_IDENTITY'])
     nodeSetup['node_admin_identity'] = adminUrl
 
 
-    manageDistributeTargets = getInput("Would you like to edit your distribution URLs?\nInput 'Edit' " +
-                                            "to edit targets, or just hit Enter to keep existing targets", 
-                                            ' '.join(map(str, defaultNodeDescriptionValues['_DEFAULT_CONNECTIONS'])),canEditDistributeConnections)
+
+    distributeFlag = True
+    while (distributeFlag):
+        manageDistributeTargets = getInput("\nWould you like to edit your distribution URLs?\nInput 'Edit' " +
+                                            "to edit targets, or just hit Enter to keep existing targets",
+                                            ' '.join(map(str, nodeDescriptionValues['_DEFAULT_CONNECTIONS'])))
     
+        if manageDistributeTargets == 'Edit' or manageDistributeTargets == 'edit':    
+                distributeFlag = False 
+        else:
+            if len(manageDistributeTargets) == 0:
+                distributeFlag = False 
+            else:           
+                manageList = manageDistributeTargets.split(' ')    
+                distributeFlag = not (manageList[0:] == nodeDescriptionValues['_DEFAULT_CONNECTIONS'][0:])    
+
+
+
     if not (manageDistributeTargets == 'Edit' or manageDistributeTargets == 'edit') :
-        nodeSetup['connections'] = defaultNodeDescriptionValues['_DEFAULT_CONNECTIONS']
+        nodeSetup['connections'] = nodeDescriptionValues['_DEFAULT_CONNECTIONS']
     else:
-        nodeSetup['connections'] = dp.setupDistributionConnections(defaultNodeDescriptionValues['_DEFAULT_CONNECTIONS'])
+        nodeSetup['connections'] = dp.setupDistributionConnections(nodeDescriptionValues['_DEFAULT_CONNECTIONS'])
+
 
     
     isGatewayNode = getInput('\nIs the node a gateway node (T/F)', 
-                                            defaultNodeDescriptionValues['_DEFAULT_GATEWAY_NODE'])
+                                            nodeDescriptionValues['_DEFAULT_GATEWAY_NODE'])
     nodeSetup['gateway_node'] = (isGatewayNode == 'T' or isGatewayNode =='t')
+
 
     
     isNodeOpen = getInput('Is the node "open" (T/F)', 
-                                            defaultNodeDescriptionValues['_DEFAULT_OPEN_CONNECT_SOURCE'])
+                                            nodeDescriptionValues['_DEFAULT_OPEN_CONNECT_SOURCE'])
     nodeSetup['open_connect_source'] = (isNodeOpen == 'T' or isNodeOpen == 't')
 
 
@@ -251,7 +297,7 @@ def getSetupInfo():
     
 
     isDistributeDest = getInput("\nDoes the node want to be the destination for replication (T/F)", 
-                                            defaultNodeDescriptionValues['_DEFAULT_OPEN_CONNECT_DEST'])
+                                            nodeDescriptionValues['_DEFAULT_OPEN_CONNECT_DEST'])
     nodeSetup['open_connect_dest'] = (isDistributeDest == 'T' or isDistributeDest == 't')
 
     return nodeSetup
