@@ -24,7 +24,7 @@ from lr.lib.harvest import harvest
 from lr.lib.oaipmherrors import IdDoesNotExistError, NoMetadataFormats,\
     CannotDisseminateFormatError
 import lr.lib.helpers as h
-from lr.model.base_model import appConfig
+from pylons import config
 import json
 from lr.lib.stream import CouchDBDocProcessor
 import urllib2
@@ -96,19 +96,16 @@ class oaipmh(harvest):
     '''
     Utility class to provide OAI-PMH results from Learning Registy
     '''
-    def __init__(self, server=appConfig['couchdb.url'], database="resource_data"):
+    def __init__(self, server=config['app_conf']['couchdb.url'], database="resource_data"):
         '''
         Constructor
         '''
         harvest.__init__(self, server, database)
         self.server = couchdb.Server(server)
         self.db = self.server[database]
-        self.res_data_url = '/'.join([
-            appConfig['couchdb.url'],
-            appConfig['couchdb.db.resourcedata']
-        ])
+        self.res_data_url = '/'.join([config['app_conf']['couchdb.db.resourcedata']])
         
-        self.service_doc = helpers.getServiceDocument(appConfig["lr.oaipmh.docid"])
+        self.service_doc = helpers.getServiceDocument(config['app_conf']["lr.oaipmh.docid"])
       
     
     def list_opts(self, metadataPrefix, from_date=None, until_date=None):
@@ -151,13 +148,13 @@ class oaipmh(harvest):
 #        return map(lambda row: row["value"], view_data)
 
     def get_records_by_resource(self,resource_locator):
-        view_data = h.getView(database_url=self.db_url,view_name='_design/learningregistry-resource-location/_view/docs',method="POST", documentHandler=OAIPMHDocumentResolver(), include_docs=True,keys=[resource_locator], stale='ok')
+        view_data = h.getView(database_url=self.db_url,view_name='_design/learningregistry-resource-location/_view/docs',method="POST", documentHandler=OAIPMHDocumentResolver(), include_docs=True,keys=[resource_locator], stale=config['app_conf']['couchdb.stale.flag'])
         for doc in view_data:
             yield doc  
     
     def list_identifiers_or_records(self,metadataPrefix,from_date=None, until_date=None, rt=None, fc_limit=None, serviceid=None, include_docs=False):
         '''Returns the list_records as a generator based upon OAI-PMH query'''
-        opts = { "stale": "ok" };
+        opts = { "stale": config['app_conf']['couchdb.stale.flag'] };
         if include_docs:
             opts["include_docs"] = True
         
@@ -195,7 +192,7 @@ class oaipmh(harvest):
     
     def list_metadata_formats(self, identity=None, by_doc_ID=False, verb="ListMetadataFormats"):
         try:
-            opts = { "stale": "ok" }
+            opts = { "stale": config['app_conf']['couchdb.stale.flag'] }
             if identity != None:
                 opts["include_docs"] = "true"
                 
@@ -243,7 +240,7 @@ class oaipmh(harvest):
             opts = {
                     "group": True,
                     "limit": 1,
-                    "stale": "ok"
+                    "stale": config['app_conf']['couchdb.stale.flag']
                     }
             
             view_data = self.db.view('oai-pmh-identify-timestamp/docs', **opts)

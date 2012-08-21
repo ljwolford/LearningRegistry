@@ -10,23 +10,16 @@ Base model class for learning registry data model
 @author: jpoyau
 '''
 import sys
-from network import NetworkModel
-from community import CommunityModel
-from node import NodeModel
-from node_status import NodeStatusModel
-from network_policy import NetworkPolicyModel
-from node_connectivity import NodeConnectivityModel
-from node_service import NodeServiceModel
-from resource_data import ResourceDataModel
-from node_filter import NodeFilterModel, defaultCouchServer, appConfig
+
 import logging
-import threading
 import pprint
 from lr.lib import helpers as h
 import urllib2
 from urlparse import urlparse, urlunparse, ParseResult
 import json
-import atexit
+from pylons import config
+from _default_models import *
+
 _COUCHDB_FIELDS =['_id', '_rev', 
                                     '_attachments', 
                                     '_deleted', 
@@ -143,7 +136,8 @@ class LRNodeModel(object):
           
     def _getStatusDescription(self):
         count = 0
-        view = ResourceDataModel._defaultDB.view(appConfig['couchdb.db.resourcecount'],stale='ok')
+        view = ResourceDataModel._defaultDB.view(config['app_conf']['couchdb.db.resourcecount'],stale='ok')
+
         if len(view.rows) > 0:
             count = view.rows[0].value 
         statusData = {'doc_count': count,
@@ -277,9 +271,20 @@ class LRNodeModel(object):
         passwords = h.dictToObject(NodeModel._defaultDB[_ACCESS_CREDENTIALS_ID])
         credential = passwords.passwords.get(targetUrl)
         return credential
+    
+    def getDistributeInfo(self):
+        distributeInfo = {'active':self.nodeDescription.active,
+                                    'node_id':self.nodeDescription.node_id,
+                                    'network_id': self.nodeDescription.network_id,
+                                    'community_id': self.nodeDescription.community_id,
+                                    'gateway_node':self.nodeDescription.gateway_node,
+                                    'social_community':self.communityDescription.social_community,
+                                    'resource_data_url': config['app_conf']['lr.distribute_resource_data_url'],
+                                    'filter_description':self.filterDescription.specData
+                                }
+        return distributeInfo
 
-
-
+    distributeInfo = property(lambda self: self.getDistributeInfo(), None, None, None)
     nodeDescription = property(lambda self: self._nodeDescription, None, None, None)
     networkDescription = property(lambda self: self._networkDescription, None, None, None)
     communityDescription = property(lambda self: self._communityDescription, None, None, None)
@@ -291,5 +296,6 @@ class LRNodeModel(object):
     connections = property(lambda self: self._connections[:], None, None, None)
     nodeServices = property(lambda self: self._nodeServices.values(), None, None, None)
     status = property(_getStatusDescription, None, None, None)
+
 
 

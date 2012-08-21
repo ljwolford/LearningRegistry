@@ -10,25 +10,15 @@ import json
 
 
 
-def install(server, dbname, setupInfo):
+def install(databaseUrl, setupInfo):
     custom_opts = {}
     active = getInput("Enable SWORD Service?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
 
-    
-
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
     
-    
-    must = __BasicSwordServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    print config_doc
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":SWORD APP Publish V1.3 service", doc)
-    print("Configured SWORD APP Publish service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
-
-
+    return __BasicSwordServiceTemplate().install(databaseUrl, custom_opts)
 
 
 class __BasicSwordServiceTemplate(ServiceTemplate):
@@ -36,8 +26,6 @@ class __BasicSwordServiceTemplate(ServiceTemplate):
         ServiceTemplate.__init__(self)    
         self.service_data_template = '''{
         }'''    
-    
-    
     
     def _optsoverride(self):
         opts = {
@@ -66,7 +54,7 @@ if __name__ == "__main__":
     
     def notExample(input=None):
         return input is not None and input != nodeSetup["nodeUrl"]
-    
+
     nodeSetup["couchDBUrl"] = getInput("Enter the CouchDB URL:", nodeSetup["couchDBUrl"], doesNotEndInSlash)
     nodeSetup["nodeUrl"] = getInput("Enter the public URL of the LR Node", nodeSetup["nodeUrl"], notExample)
     

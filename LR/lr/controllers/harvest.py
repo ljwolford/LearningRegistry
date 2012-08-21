@@ -13,10 +13,9 @@ import lr.lib.resumption_token as rt
 log = logging.getLogger(__name__)
 import ast
 import string
-
 from lr.model import LRNode as sourceLRNode, \
-            NodeServiceModel, ResourceDataModel, LRNodeModel, defaultCouchServer, appConfig
-BASIC_HARVEST_SERVICE_DOC = appConfig['lr.harvest.docid']
+            NodeServiceModel, ResourceDataModel, LRNodeModel, defaultCouchServer, config['app_conf']
+BASIC_HARVEST_SERVICE_DOC = config['app_conf']['lr.harvest.docid']
 class HarvestController(BaseController):
     """REST Controller styled on the Atom Publishing Protocol"""
     # To properly map this controller, ensure your config/routing.py

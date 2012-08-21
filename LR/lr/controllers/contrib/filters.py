@@ -11,12 +11,9 @@ import urllib2
 
 log = logging.getLogger(__name__)
 
-_COUCH_SERVER = config['app_conf']['couchdb.url']
-_RESOURCE_DATA = config['app_conf']['couchdb.db.resourcedata']
 _DESIGN_DOC = '_design/filter'
 
-_BASE_PATH = _RESOURCE_DATA + "/" + _DESIGN_DOC
-couchServer = couchdb.Server(_COUCH_SERVER)
+resourceDataDb = couchdb.Database(config['app_conf']['couchdb.db.resourcedata'])
 
 class FiltersController(BaseController):
     """REST Controller styled on the Atom Publishing Protocol"""
@@ -67,14 +64,14 @@ class FiltersController(BaseController):
                 viewName = "{0}-{1}".format(data["name"], jsSha)
                 viewObj = { "map": maptemplate.format(data["map"]) }
                 
-            design = couchServer[_RESOURCE_DATA][_DESIGN_DOC]
+            design = resourceDataDb[_DESIGN_DOC]
             
             if viewName != None and viewObj != None and design.has_key("views") == True and design["views"].has_key(viewName) == True:
                 del design["views"][viewName]
             
             if viewName != None and viewObj != None:
                 design["views"][viewName] = viewObj
-                couchServer[_RESOURCE_DATA].save(design)
+                resourceDataDb.save(design)
                 success["filter"] = viewName 
             
             if viewName == None or viewObj == None:
@@ -113,11 +110,11 @@ class FiltersController(BaseController):
         design = {}
         success = {"status": "OK"}
         try:
-            design = couchServer[_RESOURCE_DATA][_DESIGN_DOC]
+            design = resourceDataDb[_DESIGN_DOC]
             
             if design.has_key("views") == True and design["views"].has_key(id) == True:
                 del design["views"][id]
-                couchServer[_RESOURCE_DATA].save(design) 
+                resourceDataDb.save(design) 
             
         except:
             success["status"] = "ERROR"
@@ -131,7 +128,7 @@ class FiltersController(BaseController):
     def show(self, id, format='json'):
         """GET /contrib/filters/id: Show a specific item"""
         
-        design = couchServer[_RESOURCE_DATA][_DESIGN_DOC]
+        design = resourceDataDb[_DESIGN_DOC]
         
         reduceParam = ""
         if design.has_key("views") == True and design["views"].has_key(id) == True and design["views"][id].has_key("reduce"):

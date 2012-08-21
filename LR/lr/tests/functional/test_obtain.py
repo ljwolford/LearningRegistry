@@ -11,6 +11,9 @@ from lr.util.decorators import ForceCouchDBIndexing
 log = logging.getLogger(__name__)
 headers={'Content-Type': 'application/json'}
 class TestObtainController(TestController):
+    def __init__(self, *args, **kwargs):
+        TestController.__init__(self,*args,**kwargs)
+        self.controllerName = "obtain"    
     @classmethod
     def setupClass(self):
         self.setup = True
@@ -96,7 +99,7 @@ class TestObtainController(TestController):
         self._validateResponse(response,params,map(lambda doc: doc['key'],self.db.view('_design/learningregistry-resource-location/_view/docs').rows))
     @ForceCouchDBIndexing()
     def test_flow_control_enabled(self):
-        nodeDb = self.server[config["couchdb.db.node"]]
+        nodeDb = couchdb.database(config["couchdb.db.node"])
         serviceDoc = nodeDb[config["lr.obtain.docid"]]
         flowControlCurrent = serviceDoc['service_data']['flow_control']
         serviceDoc['service_data']['flow_control'] = True
@@ -122,7 +125,7 @@ class TestObtainController(TestController):
         assert len(result['documents']) == 100
     @ForceCouchDBIndexing()        
     def test_flow_control_disabled(self):
-        nodeDb = self.server[config["couchdb.db.node"]]
+        nodeDb = couchdb.Database(config["couchdb.db.node"])
         serviceDoc = nodeDb[config["lr.obtain.docid"]]
         flowControlCurrent = serviceDoc['service_data']['flow_control']
         serviceDoc['service_data']['flow_control'] = False

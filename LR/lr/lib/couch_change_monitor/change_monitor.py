@@ -25,13 +25,13 @@ class MonitorChanges(Thread):
     # any change in change.  This avoid getting stuck in endless loop
     _MAX_ERROR_RESTART = 10
      
-    def __init__(self, serverUrl, databaseName,  changeHandlers=None,  changeOptions=None, *args, **kwargs):
-        """Waring *args and **kwargs will be run on the different process so the must
+    def __init__(self, databaseUrl,  changeHandlers=None,  changeOptions=None, *args, **kwargs):
+        """Warning *args and **kwargs will be run on the different process so they must
             be pickeable and not tied in any way to the calling process otherwise to application
             may get unstable.
         """
         Thread.__init__(self, None, None, "learningRegistryChangeMonitor", args, kwargs)
-        self._database = couchdb.Server(serverUrl)[databaseName]
+        self._databaseUrl = databaseUrl
         self._callerThread = None
         self._addHandlerQueue = Queue()
         self._removeHandlerQueue = Queue()
@@ -59,6 +59,7 @@ class MonitorChanges(Thread):
                 [h for h in handlers if isinstance(h, BaseChangeHandler)])
         else: 
             self._changeHandlerSet = set()
+    
 
     def _initLastChangeSequence(self):
         """Get the last sequence change on startup assuming that the  previous changes
@@ -90,7 +91,9 @@ class MonitorChanges(Thread):
     def _updateChangeHandlerSet(self):
         #Check to add and remove handler queue and update hander set.
         while(self._addHandlerQueue.empty() ==False):
-            self._changeHandlerSet.add(self._addHandlerQueue.get())
+            h = self._addHandlerQueue.get()
+            h.preRunSetup()
+            self._changeHandlerSet.add(h)
 
         while(self._removeHandlerQueue.empty() == False):
             self._changeHandlerSet.remove(self._removeHandlerQueue.get())
@@ -127,17 +130,27 @@ class MonitorChanges(Thread):
             self._removeHandlerQueue.put(handler)
 
     def run(self):
+        self._database = couchdb.Database(self._databaseUrl)
         # As long as we are running keep monitoring the change feed for changes.
         log.debug("Start monitoring database : {0} changes PID: {1} since:{2}\n\n".format(
-                    str(self._database), self.name, self._lastChangeSequence))
+                    str(self._databaseUrl), self.name, self._lastChangeSequence))
         self._errorCount = 0
+        
+        #Running the the handler setup
+        for h in self._changeHandlerSet:
+            h.preRunSetup()
+            
         while(self.is_alive() and self._errorCount < self._MAX_ERROR_RESTART):
             try:
                 self._processChanges()
                 self._errorCount = 0
+            #Exit if the database is deleted.
+            except  couchdb.ResourceNotFound as ex:
+                log.error("Database {0} is no longer accessible...".format(self._database.resource.url))
+                break
             except Exception as e:
                 log.error("Error processing {0} changes. Restart change monitor....\n\n".format(
-                str(self._database.name)))
+                str(self._database.resource.url)))
                 log.exception(e)
                 self._errorCount = self._errorCount + 1
 
@@ -146,7 +159,8 @@ class MonitorChanges(Thread):
     
     def terminate(self):
         log.debug("\n\n------------I got terminated ...---------------\n\n")
-    
+     
+          
     def start(self, callerThread=None):
         if isinstance(callerThread, Thread):
             self._callerThread = callerThread
@@ -182,6 +196,7 @@ if __name__=="__main__":
     h2 = TestThresholdHandler(10, timedelta(seconds=60))
     h3 = TestViewUpdate(5, timedelta(seconds=15))
     
-    mon = MonitorChanges('http://127.0.0.1:5984', "resource_data", [h1, h2, h3])
+    from threading import currentThread
+    mon = MonitorChanges('http://127.0.0.1:5984/resource_data', [h1, h2, h3], currentThread())
     print ("starting the monitoring .....")
     mon.start()

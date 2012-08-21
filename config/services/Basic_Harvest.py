@@ -8,8 +8,7 @@ from setup_utils import getInput, PublishDoc, isBoolean, YES, isInt
 import pystache, uuid
 import json
 
-
-def install(server, dbname, setupInfo):
+def install(databaseUrl, setupInfo):
     custom_opts = {}
     active = getInput("Enable Basic Harvest?", "T", isBoolean)
     custom_opts["active"] = active.lower() in YES
@@ -27,11 +26,8 @@ def install(server, dbname, setupInfo):
     custom_opts["node_endpoint"] = setupInfo["nodeUrl"]
     custom_opts["service_id"] = uuid.uuid4().hex
     
-    must = __BasicHarvestServiceTemplate()
-    config_doc = must.render(**custom_opts)
-    doc = json.loads(config_doc)
-    PublishDoc(server, dbname,doc["service_type"]+":Basic Harvest service", doc)
-    print("Configured Basic Harvest service:\n{0}\n".format(json.dumps(doc, indent=4, sort_keys=True)))
+    return __BasicHarvestServiceTemplate().install(databaseUrl, custom_opts)
+
 
 
 
@@ -54,8 +50,6 @@ class __BasicHarvestServiceTemplate(ServiceTemplate):
             }]
         }'''
     
-    
-    
     def _optsoverride(self):
         opts = {
             "active": "false",
@@ -72,6 +66,7 @@ class __BasicHarvestServiceTemplate(ServiceTemplate):
         }
         return opts
         
+
 if __name__ == "__main__":
     import couchdb
     
@@ -90,5 +85,5 @@ if __name__ == "__main__":
     nodeSetup["nodeUrl"] = getInput("Enter the public URL of the LR Node", nodeSetup["nodeUrl"], notExample)
     
     server =  couchdb.Server(url= nodeSetup['couchDBUrl'])
-    install(server, "node", nodeSetup)
+    install(nodeSetup['couchDBUrl']+'/node', nodeSetup)
     

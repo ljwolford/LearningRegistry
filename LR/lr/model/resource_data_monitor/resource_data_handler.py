@@ -8,12 +8,20 @@ Created on August 31, 2011
 
 @author: jpoyau
 '''
+
+#_PWD = path.abspath(path.dirname(__file__))
+
+#import sys
+##Add the config and lr module the sys path so that they can used.
+#sys.path.append(path.abspath(path.join(_PWD, "../")))
+
 import logging
 import pprint
 from lr.lib import BaseChangeHandler
-from lr.model.resource_data import ResourceDataModel
+from spec_models import ResourceDataFactory
+import couchdb
 
-_RESOURCE_DISTRIBUTABLE_TYPE = "resource_data"
+_RESOURCE_DATA_TYPE = "resource_data"
 _DOC_TYPE = "doc_type"
 _DOC = "doc"
 
@@ -21,17 +29,27 @@ log = logging.getLogger(__name__)
 
 class ResourceDataHandler(BaseChangeHandler):
     
+    def __init__(self, specDefinitionFiles, destinationDBUrl, docType=_RESOURCE_DATA_TYPE):
+        BaseChangeHandler.__init__(self)
+        self._destinationDBUrl = destinationDBUrl
+        self._specDefinitionFiles = specDefinitionFiles
+        self._docType = docType
+
+    def preRunSetup(self):
+        self.ResourceDataModel = ResourceDataFactory(self._specDefinitionFiles, self._destinationDBUrl)
+        self._destinationDB = couchdb.Database(self._destinationDBUrl)
+
     def _canHandle(self, change, database):
         if ((_DOC in change) and 
-            (change[_DOC].get(_DOC_TYPE) ==_RESOURCE_DISTRIBUTABLE_TYPE)) :
+            (change[_DOC].get(_DOC_TYPE) ==self._docType)) :
                 return True
         return False
     
-    def _updateDistributableData(self, newDistributableData, database):
+    def _updateDistributableData(self, newDistributableData, distributableDocId, database):
         # Use the ResourceDataModel class to create an object that 
         # contains only a the resource_data spec data.
-        currentDistributable = database[newDistributableData['_id']]
-        temp = ResourceDataModel(currentDistributable)._specData
+        currentDistributable = database[distributableDocId]
+        temp = self.ResourceDataModel(currentDistributable)._specData
         del temp['node_timestamp']
          
         if newDistributableData != temp:
@@ -46,29 +64,36 @@ class ResourceDataHandler(BaseChangeHandler):
                 log.exception(e)
         
         
-    def _addDistributableData(self, distributableData, database):
+    def _addDistributableData(self, distributableData, distributableDocId, database):
         try:
-            log.debug('Adding distributable doc %s...\n' % distributableData['_id'])
-            database[distributableData['_id']] = distributableData
+            log.debug('Adding distributable doc %s...\n' % distributableDocId)
+            database[distributableDocId] = distributableData
         except Exception as e:
-            log.error("Cannot save distributable document %s\n" % distributableData['_id'] )
+            log.error("Cannot save distributable document %s\n" % distributableDocId)
             log.exception(e)
 
     def _handle(self, change, database):
       
         # Use the ResourceDataModel class to create an object that 
         # contains only a the resource_data spec data.
-        distributableDoc = ResourceDataModel(change['doc'])._specData
+        distributableDoc = self.ResourceDataModel(change['doc'])._specData
         #remove the node timestamp
         del distributableDoc['node_timestamp']
         #change thet doc_type 
         distributableDoc['doc_type']='resource_data_distributable'
-        distributableDoc['_id'] = change['doc']['_id']+"-distributable"
-       
+        distributableDocId= change['doc']['_id']+"-distributable"
+        
+        # Use the change monitor database as destination db if it is the same url
+        # as the defined destinationDB so that everything stays in the same 
+        # resource context when checking if the document is already in the database
+        destinationDB = self._destinationDB
+        if self._destinationDB.resource.url == database.resource.url:
+            destinationDB = database       
+
         # Check to see if a corresponding distributatable document exist.
         # not create a new distribuation document without the 
         # node_timestamp and _id+distributable.
-        if not distributableDoc['_id'] in database:
-            self._addDistributableData(distributableDoc, database)
+        if (distributableDocId in destinationDB) == False:
+            self._addDistributableData(distributableDoc, distributableDocId, destinationDB)
         else:
-            self._updateDistributableData(distributableDoc, database)
+            self._updateDistributableData(distributableDoc, distributableDocId, destinationDB)

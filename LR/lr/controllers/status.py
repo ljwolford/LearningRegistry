@@ -30,11 +30,10 @@ class StatusController(BaseController):
 
     def index(self, format='html'):
         """GET /status: All items in the collection"""
-        #if sourceLRNode.isServiceAvailable(NodeServiceModel.ADMINISTRATIVE) == False:
-        # return "Administrative service not is available"
+
         har = harvest()
         s = sourceLRNode.status      
-        earliestDate = har.earliestDate()   
+        earliestDate = har.earliestDate() 
         #print earliestDate
         s['earliestDatestamp'] =earliestDate 
         #print "here" 

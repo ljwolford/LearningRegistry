@@ -10,12 +10,13 @@ from uuid import uuid4
 import lrnodetemplate as t
 from pprint import pprint
 import urlparse
+import urllib2
 
 
 #Default url to the couchdb server.
 _DEFAULT_COUCHDB_URL =  "http://127.0.0.1:5984"
 
-def publishService(nodeUrl, server, dbname, serviceType, serviceName):
+def publishService(nodeUrl, databaseUrl, serviceType, serviceName):
     service = {}
     service.update(t.service_description)
     service['service_type'] =serviceType
@@ -24,34 +25,39 @@ def publishService(nodeUrl, server, dbname, serviceType, serviceName):
     service['service_name'] = serviceName
     service["service_endpoint"] = urlparse.urljoin(nodeUrl, serviceName)
     service['service_description']= "{0} {1} service".format(serviceType, serviceName)
-    PublishDoc(server, dbname,  "{0}:{1} service".format(serviceType, serviceName), service)
+    PublishDoc(databaseUrl,  "{0}:{1} service".format(serviceType, serviceName), service)
 
-def CreateDB(couchServer = _DEFAULT_COUCHDB_URL,  dblist=[], deleteDB=False):
+def CreateDB(dblist=[], deleteDB=False):
     '''Creates a DB in Couch based upon config'''
     for db in dblist:
         if deleteDB:
             try:
-                del couchServer[db]
-            except couchdb.http.ResourceNotFound as rnf:
-                print("DB '{0}' doesn't exist on '{1}', creating".format(db, couchServer))
-        else:
+                request = urllib2.Request(db)
+                request.get_method = lambda : "DELETE"
+                
+            except urllib2.URLError as ex:
+                if ex.code != 404:
+                    raise(ex)
             try:
-                existingDB = couchServer[db]
-                print("Using existing DB '{0}' on '{1}'\n".format(db, couchServer))
-                continue
-            except:
-                pass
-        try:
-            couchServer.create(db)
-            print("Created DB '{0}' on '{1}'\n".format(db, couchServer))
-        except Exception as e:
-            print("Exception while creating database: {0}\n".format(e) )
+                request = urllib2.Request(db)
+                request.get_method = lambda : "PUT"
+                urllib2.urlopen(request)
+                print("Created DB  at '{0}'\n".format(db))
+            except urllib2.URLError as e:
+                if e.code != 412:
+                    print("Exception while creating database: {0}\n".format(e) )
+                    raise(e)
+        else:
+            existingDB = couchdb.Database(db)
+            print("Using existing DB '{0}'\n".format(db))
+            continue
+      
 
 
-def PublishDoc(couchServer, dbname, name, doc_data):
+def PublishDoc(databaseUrl, name, doc_data):
     try:
         #delete existing document.
-        db = couchServer[dbname]
+        db = couchdb.Database(databaseUrl)
         if "_rev" in doc_data:
             del doc_data["_rev"]
        
@@ -60,7 +66,7 @@ def PublishDoc(couchServer, dbname, name, doc_data):
         except:
             pass
         db[name] = doc_data
-        print("Added config document '{0}' to '{1}".format(name, dbname))
+        print("\nAdded config document '{0}' to '{1}'".format(name, databaseUrl))
     except  Exception as ex:
         print("Exception when add config document:\n")
         exc_type, exc_value, exc_tb = sys.exc_info()
@@ -152,6 +158,10 @@ def getSetupInfo():
     isNodeOpen = getInput('Is the node "open" (T/F)', 'T')
     nodeSetup['open_connect_source']  = (isNodeOpen=='T')
 
+    nodeSetup['distributeResourceDataUrl'] = getInput("\nEnter distribute/replication "+
+                        "resource_data destination URL \n(this is the resource_data URL that another node couchdb "+
+                        "will use to replicate/distribute to this node)", "{0}/resource_data".format(nodeUrl))
+    
     isDistributeDest = getInput("Does the node want to be the destination for replication (T/F)", 'T')
     nodeSetup['open_connect_dest'] =(isDistributeDest =='T')
     return nodeSetup

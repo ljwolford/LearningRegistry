@@ -177,7 +177,9 @@ class TestOaiPmhControllerSpecialData(TestController):
 
 
 class TestOaiPmhController(TestController):
-
+    def __init__(self, *args, **kwargs):
+        TestController.__init__(self,*args,**kwargs)
+        self.controllerName = "OAI-PMH"
     @classmethod
     def setUpClass(self):
 
@@ -827,7 +829,7 @@ class TestOaiPmhController(TestController):
         
         item_limit = int(math.ceil(len(sorted_nsdl_data["documents"]) * (2.0/3.0)))
         
-        node_db = self.server[config["couchdb.db.node"]]
+        node_db = couchdb.Database(config["couchdb.db.node"])
         service_doc_org = node_db[config["lr.oaipmh.docid"]] 
         
         service_doc_copy = copy.deepcopy(service_doc_org)
@@ -934,7 +936,7 @@ class TestOaiPmhController(TestController):
         
         item_limit = int(math.ceil(len(sorted_nsdl_data["documents"]) * (2.0/3.0)))
         
-        node_db = self.server[config["couchdb.db.node"]]
+        node_db = couchdb.Database(config["couchdb.db.node"])
         service_doc_org = node_db[config["lr.oaipmh.docid"]] 
         
         service_doc_copy = copy.deepcopy(service_doc_org)

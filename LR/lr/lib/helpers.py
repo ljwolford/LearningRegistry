@@ -52,12 +52,18 @@ def fixUtf8(input):
         return input
 
 def getServiceDocument(serviceName):
-    from lr.model.base_model import appConfig
+    from pylons import config
+    res = None
     json_headers = { "Content-Type": "application/json; charset=\"utf-8\"" }
-    url = "{0}/{1}/{2}".format(appConfig['couchdb.url'],appConfig['couchdb.db.node'],urllib.quote(serviceName))
-    req = urllib2.Request(url=url, headers=json_headers)
-    res = urllib2.urlopen(req)
-    return json.load(res)
+    url = "{0}/{1}".format(config['app_conf']['couchdb.db.node'],urllib.quote(serviceName))
+    try:
+        req = urllib2.Request(url=url, headers=json_headers)
+        res = json.load(urllib2.urlopen(req))
+    except urllib2.URLError as e:
+        #Ignore exception that happens with the service document is just not there.
+        if (e.code != 404):
+            raise(e)
+    return res
 
 
 def getView(database_url, view_name, method="GET", documentHandler=None, **kwargs):    
@@ -100,18 +106,7 @@ def getView(database_url, view_name, method="GET", documentHandler=None, **kwarg
     dh = StreamingCouchDBDocHandler(documentHandler)
     return dh.generator(resp)
     
-#    for data in resp:
-#        length = data.rfind(',')
-#        if length > 0:
-#            data = data[:length]        
-#        try:
-#            data = json.loads(data)
-#            doc = document(data)
-#            yield doc
-#        except ValueError as e:
-#            log.debug(repr(e))
 
-            #pass#skip first and final chunks
 class ParseError(Exception):
     """Raised when there is a problem parsing a date string"""
 
@@ -121,8 +116,7 @@ def importModuleFromFile(fullpath):
     import os
     import sys
     
-    
-    
+
     sys.path.append(os.path.dirname(fullpath))
     
     module = None
@@ -215,10 +209,9 @@ def getISO8601Granularity(iso8601string):
 _DATETIME_REPLACEMENT_REGEX = re.compile(r"[YMDhms]")
 
 def getOAIPMHServiceGranularity():
+    from pylons import config
     '''Determines the Granularity object of 8601 time format specified by OAI-PMH Harvest'''
-    from lr.model.base_model import appConfig
-    service_doc = getServiceDocument(appConfig["lr.oaipmh.docid"])
-    
+    service_doc = getServiceDocument(config['app_conf']["lr.oaipmh.docid"])
     format = getDatetimePrecision(service_doc)
     return getISO8601Granularity(re.sub(_DATETIME_REPLACEMENT_REGEX, "1", format))
     
@@ -240,13 +233,13 @@ def getDatetimePrecision(service_descriptor=None):
 
     
 def getHarvestDatetimeFormatString():
-    from lr.model.base_model import appConfig
-    service_doc = getServiceDocument(appConfig["lr.harvest.docid"])
+    from pylons import config
+    service_doc = getServiceDocument(config['app_conf']["lr.harvest.docid"])
     return getDatetimeFormatString(service_doc)
 
 def getOAIPMHDatetimeFormatString():
-    from lr.model.base_model import appConfig
-    service_doc = getServiceDocument(appConfig["lr.oaipmh.docid"])
+    from pylons import config
+    service_doc = getServiceDocument(config['app_conf']["lr.oaipmh.docid"])
     return getDatetimeFormatString(service_doc)
     
 def getDatetimeFormatString(service_doc):

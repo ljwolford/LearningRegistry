@@ -31,11 +31,8 @@ class DescriptionController(BaseController):
 
     def index(self, format='html'):
         """GET /description: All items in the collection"""
-        #if sourceLRNode.isServiceAvailable(NodeServiceModel.ADMINISTRATIVE) == False:
-            #return "Administrative service is not available
-            
+                    
         return sourceLRNode.nodeJsonDescription
-        # url('description')
 
     def create(self):
         """POST /description: Create a new item"""

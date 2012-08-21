@@ -12,7 +12,7 @@ log = logging.getLogger(__name__)
 
 def make_map(config):
     """Create, configure and return the routes Mapper"""
-    from pylons import config as c    
+    from pylons import config as c 
     c.update(config)
     from lr.model import LRNode
 
@@ -26,8 +26,13 @@ def make_map(config):
             service_doc = h.getServiceDocument(service_doc_id)
             if service_doc is not None and service_doc["active"]:
                 map.resource(member_name, collection_name)
+                map.connect("/"+collection_name,controller=collection_name,action='options',conditions=dict(method=['OPTIONS']))
                 if member_name == 'swordservice':
                     map.connect("/swordpub",controller='swordservice',action='create')
+                
+                if member_name == 'distribute':
+                    map.connect("/destination", controller='distribute', action='destination',
+                                          conditions=dict(method='GET'))
                 log.info("Enabling service route for: {0} member: {1} collection: {2}".format(service_doc_id, member_name, collection_name))
             else:
                 log.info("Service route for {0} is disabled".format(service_doc_id))

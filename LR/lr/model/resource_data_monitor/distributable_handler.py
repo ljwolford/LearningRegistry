@@ -8,10 +8,19 @@ Created on August 31, 2011
 
 @author: jpoyau
 '''
+from os import path
+
+#_PWD = path.abspath(path.dirname(__file__))
+
+#import sys
+##Add the config and lr module the sys path so that they can used.
+#sys.path.append(path.abspath(path.join(_PWD, "../")))
+
 from lr.lib.couch_change_monitor import BaseChangeHandler
 import pprint
-from lr.model.resource_data import appConfig, ResourceDataModel
+from spec_models import ResourceDataFactory
 import logging
+import couchdb
 
 log = logging.getLogger(__name__)
 
@@ -20,9 +29,20 @@ _DOC_TYPE = "doc_type"
 _DOC = "doc"
 
 class DistributableHandler(BaseChangeHandler):
+    def __init__(self, specDefinitionFiles, destinationDBUrl, docType=_RESOURCE_DISTRIBUTABLE_TYPE ):
+        BaseChangeHandler.__init__(self)
+        self._destinationDBUrl = destinationDBUrl
+        self._specDefinitionFiles = specDefinitionFiles
+        self._docType = docType
+
+    def preRunSetup(self):
+        self.ResourceDataModel = ResourceDataFactory(self._specDefinitionFiles, self._destinationDBUrl)
+        self._destinationDB = couchdb.Database(self._destinationDBUrl)
+      
+
     def _canHandle(self, change, database):
         if ((_DOC in change) and 
-            (change[_DOC].get(_DOC_TYPE) ==_RESOURCE_DISTRIBUTABLE_TYPE)) :
+            (change[_DOC].get(_DOC_TYPE) == self._docType)) :
                 return True
         return False
         
@@ -30,7 +50,7 @@ class DistributableHandler(BaseChangeHandler):
         # There exist already a resource_data document for the distributable
         # get it and see if it needs to be updated.
         try:
-            return  ResourceDataModel(database[docID])._specData
+            return  self.ResourceDataModel(database[docID])._specData
         except Exception as e:
             log.error("Cannot find existing resource_data doc for distributable: {0}\n".format(
                             docID))
@@ -73,12 +93,19 @@ class DistributableHandler(BaseChangeHandler):
     def _handle(self, change, database):
         # The resource data copy is what the corresponding resource data document
         #  for this distributable document should look like.
-        resourceDataCopy = ResourceDataModel(change['doc'])._specData
+        resourceDataCopy = self.ResourceDataModel(change['doc'])._specData
         resourceDataCopy['doc_type'] = 'resource_data'
+
+        # Use the change monitor database as destination db if it is the same url
+        # as the defined destinationDB so that everything stays in the same 
+        # resource context when checking if the document is already in the database
+        destinationDB = self._destinationDB
+        if self._destinationDB.resource.url == database.resource.url:
+            destinationDB = database
 
         # Add the corresponding resource data document to database 
         # if not already in the database.  Otherwise try to update. 
-        if not resourceDataCopy['doc_ID'] in database:
-            self._addResourceData(resourceDataCopy, database )
+        if (resourceDataCopy['doc_ID'] in destinationDB) == False:
+            self._addResourceData(resourceDataCopy, destinationDB)
         else:
-            self._updateResourceData(resourceDataCopy, database)
+            self._updateResourceData(resourceDataCopy, destinationDB)
